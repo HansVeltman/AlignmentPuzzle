@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact - The Alignment Puzzle</title>
+    <meta name="description" content="Get in touch with the authors of The Alignment Puzzle. Questions about the book, training, or consulting? We'd love to hear from you.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/images/alignment-puzzle-logo-web.jpg" type="image/png">
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+    <div class="header-inner">
+        <a href="/" class="site-logo">
+            <img src="/static/images/alignment-puzzle-logo-web.jpg" alt="The Alignment Puzzle">
+        </a>
+        <button class="menu-toggle" aria-label="Toggle navigation">
+            <span></span><span></span><span></span>
+        </button>
+        <nav class="main-nav" id="mainNav">
+            <a href="/">Home</a>
+            <a href="/movies">Movies</a>
+            <a href="/whitepapers">Whitepapers</a>
+            <a href="/contact" class="active">Contact</a>
+            <a href="/order" class="nav-cta">Order Book</a>        </nav>
+    </div>
+</header>
+
+<!-- Page Header -->
+<section class="page-header">
+    <h1>Contact</h1>
+    <p>Questions or feedback? We'd love to hear from you.</p>
+</section>
+
+<!-- Contact Form -->
+<section class="section">
+    <div class="container">
+        <div style="display: flex; gap: 60px; flex-wrap: wrap;">
+            <div class="contact-form" style="flex: 1; min-width: 300px;">
+                <div id="formMessage"></div>
+                <form id="contactForm" action="/api/contact" method="POST">
+                    <div class="form-group">
+                        <label for="name">Name *</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject">Subject</label>
+                        <input type="text" id="subject" name="subject">
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Message *</label>
+                        <textarea id="message" name="message" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Message</button>
+                </form>
+            </div>
+            <div style="flex: 0 0 300px;">
+                <h3 style="color: var(--color-primary); margin-bottom: 16px;">Other Ways to Reach Us</h3>
+                <p style="margin-bottom: 16px; color: var(--color-text-light);">
+                    For questions about the book, training programs, or consulting services, feel free to use the contact form or reach out directly.
+                </p>
+                <p style="margin-bottom: 16px;">
+                    <strong>Email:</strong><br>
+                    <a href="mailto:hans@alignmentpuzzel.nl">hans@alignmentpuzzel.nl</a>
+                </p>
+                <p>
+                    <strong>Website:</strong><br>
+                    <a href="https://www.alignmentpuzzle.com">www.alignmentpuzzle.com</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <div class="footer-inner">
+        <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="/movies">Movies</a>
+            <a href="/whitepapers">Whitepapers</a>
+            <a href="/contact">Contact</a>
+            <a href="/order">Order Book</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 The Alignment Puzzle. All rights reserved.</p>
+    </div>
+</footer>
+
+<script src="/static/js/main.js"></script>
+</body>
+</html>

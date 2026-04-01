@@ -1,0 +1,248 @@
+"""
+The Alignment Puzzle - FastAPI Backend
+Serves static pages, handles contact form and Mollie payments.
+"""
+
+import os
+import json
+import logging
+from datetime import datetime
+from pathlib import Path
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, EmailStr
+
+# --- Configuration ---
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+TEMPLATES_DIR = BASE_DIR / "templates"
+STATIC_DIR = BASE_DIR / "static"
+ORDERS_DIR = BASE_DIR / "data" / "orders"
+MOLLIE_API_KEY = os.getenv("MOLLIE_API_KEY", "")
+CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "info@alignmentpuzzle.com")
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+
+BOOK_PRICE = 45.00
+
+# Ensure data directories exist
+ORDERS_DIR.mkdir(parents=True, exist_ok=True)
+
+# --- Logging ---
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("alignmentpuzzle")
+
+# --- App ---
+app = FastAPI(title="The Alignment Puzzle", docs_url=None, redoc_url=None)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+# --- Helper: serve template ---
+def serve_template(name: str) -> HTMLResponse:
+    template_path = TEMPLATES_DIR / name
+    if not template_path.exists():
+        raise HTTPException(status_code=404, detail="Page not found")
+    return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
+
+
+# --- Page Routes ---
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    return serve_template("index.html")
+
+
+@app.get("/movies", response_class=HTMLResponse)
+async def movies():
+    return serve_template("movies.html")
+
+
+@app.get("/whitepapers", response_class=HTMLResponse)
+async def whitepapers():
+    return serve_template("whitepapers.html")
+
+
+@app.get("/contact", response_class=HTMLResponse)
+async def contact():
+    return serve_template("contact.html")
+
+
+@app.get("/order", response_class=HTMLResponse)
+async def order():
+    return serve_template("order.html")
+
+
+# --- Payment success/failure pages ---
+@app.get("/order/success", response_class=HTMLResponse)
+async def order_success():
+    return serve_template("order_success.html")
+
+
+@app.get("/order/cancelled", response_class=HTMLResponse)
+async def order_cancelled():
+    return RedirectResponse(url="/order")
+
+
+# --- API Models ---
+class ContactMessage(BaseModel):
+    name: str
+    email: EmailStr
+    subject: str = ""
+    message: str
+
+
+class OrderRequest(BaseModel):
+    name: str
+    email: EmailStr
+    address: str
+    postal_code: str
+    city: str
+    country: str
+    quantity: int = 1
+
+
+# --- API: Contact Form ---
+@app.post("/api/contact")
+async def api_contact(msg: ContactMessage):
+    """Save contact message and optionally send email."""
+    logger.info(f"Contact form from {msg.name} <{msg.email}>: {msg.subject}")
+
+    # Save to file as a simple store (can be replaced with DB later)
+    messages_dir = BASE_DIR / "data" / "messages"
+    messages_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    msg_file = messages_dir / f"{timestamp}_{msg.email}.json"
+    msg_file.write_text(json.dumps({
+        "name": msg.name,
+        "email": msg.email,
+        "subject": msg.subject,
+        "message": msg.message,
+        "timestamp": datetime.now().isoformat()
+    }, indent=2), encoding="utf-8")
+
+    # TODO: Send email notification via SMTP
+    # This can be enabled once SMTP credentials are configured in .env
+    # See backend/email_service.py for the implementation
+
+    return {"success": True, "message": "Message received"}
+
+
+# --- API: Create Order & Mollie Payment ---
+@app.post("/api/order")
+async def api_order(order: OrderRequest):
+    """Create order and redirect to Mollie payment."""
+    if order.quantity < 1 or order.quantity > 99:
+        raise HTTPException(status_code=400, detail="Invalid quantity")
+
+    total = round(BOOK_PRICE * order.quantity, 2)
+    order_id = f"ORD-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+    # Save order to file
+    order_data = {
+        "order_id": order_id,
+        "name": order.name,
+        "email": order.email,
+        "address": order.address,
+        "postal_code": order.postal_code,
+        "city": order.city,
+        "country": order.country,
+        "quantity": order.quantity,
+        "total": total,
+        "status": "pending",
+        "created_at": datetime.now().isoformat()
+    }
+
+    order_file = ORDERS_DIR / f"{order_id}.json"
+    order_file.write_text(json.dumps(order_data, indent=2), encoding="utf-8")
+
+    # Create Mollie payment
+    if not MOLLIE_API_KEY:
+        logger.warning("MOLLIE_API_KEY not set - returning test URL")
+        return {
+            "checkout_url": f"/order/success?order_id={order_id}",
+            "order_id": order_id
+        }
+
+    try:
+        from mollie.api.client import Client as MollieClient
+
+        mollie = MollieClient()
+        mollie.set_api_key(MOLLIE_API_KEY)
+
+        payment_data = {
+            "amount": {
+                "currency": "EUR",
+                "value": f"{total:.2f}"
+            },
+            "description": f"The Alignment Puzzle x{order.quantity} ({order_id})",
+            "redirectUrl": f"{BASE_URL}/order/success?order_id={order_id}",
+            "metadata": {
+                "order_id": order_id
+            }
+        }
+
+        # Only include webhookUrl when running on a public URL
+        if not BASE_URL.startswith("http://localhost"):
+            payment_data["webhookUrl"] = f"{BASE_URL}/api/mollie/webhook"
+
+        payment = mollie.payments.create(payment_data)
+
+        # Save Mollie payment ID
+        order_data["mollie_payment_id"] = payment.id
+        order_file.write_text(json.dumps(order_data, indent=2), encoding="utf-8")
+
+        return {
+            "checkout_url": payment.checkout_url,
+            "order_id": order_id
+        }
+
+    except Exception as e:
+        logger.error(f"Mollie payment error: {e}")
+        raise HTTPException(status_code=500, detail="Payment service unavailable. Please try again later.")
+
+
+# --- API: Mollie Webhook ---
+@app.post("/api/mollie/webhook")
+async def mollie_webhook(request: Request):
+    """Handle Mollie payment status updates."""
+    form = await request.form()
+    payment_id = form.get("id")
+
+    if not payment_id or not MOLLIE_API_KEY:
+        return JSONResponse({"status": "ignored"})
+
+    try:
+        from mollie.api.client import Client as MollieClient
+
+        mollie = MollieClient()
+        mollie.set_api_key(MOLLIE_API_KEY)
+
+        payment = mollie.payments.get(payment_id)
+        order_id = payment.metadata.get("order_id") if payment.metadata else None
+
+        if order_id:
+            order_file = ORDERS_DIR / f"{order_id}.json"
+            if order_file.exists():
+                order_data = json.loads(order_file.read_text(encoding="utf-8"))
+                order_data["status"] = payment.status
+                order_data["paid_at"] = payment.paid_at if payment.is_paid() else None
+                order_file.write_text(json.dumps(order_data, indent=2), encoding="utf-8")
+
+                logger.info(f"Order {order_id} status updated to: {payment.status}")
+
+                # TODO: Send order confirmation email if paid
+
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+
+    return JSONResponse({"status": "ok"})
+
+
+# --- Run ---
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("backend.app:app", host="0.0.0.0", port=8000, reload=True)

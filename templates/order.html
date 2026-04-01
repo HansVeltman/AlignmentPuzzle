@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Book - The Alignment Puzzle</title>
+    <meta name="description" content="Order your copy of The Alignment Puzzle - Business Engineering for Aligned Organizations. Available in English and Dutch, as printed book or eBook.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/images/alignment-puzzle-logo-web.jpg" type="image/png">
+    <style>
+        .two-col-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            margin-top: 40px;
+        }
+        .lang-column {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .lang-column-top {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 24px;
+            width: 100%;
+        }
+        .lang-column-top .book-thumb {
+            flex-shrink: 0;
+            width: 90px;
+            height: 120px;
+        }
+        .lang-column-top .book-thumb img {
+            border-radius: 6px;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .lang-column-top .lang-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .lang-column-top .lang-info h2 {
+            color: var(--color-primary);
+            margin: 0 0 8px;
+            font-size: 1.5em;
+        }
+        .lang-flags {
+            display: flex;
+            gap: 8px;
+        }
+        .lang-flags img {
+            height: 28px;
+            border-radius: 3px;
+        }
+        .lang-column .btn-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .lang-column .btn-group .btn {
+            text-align: center;
+            width: 100%;
+            display: block;
+            font-size: 1em;
+            padding: 14px 20px;
+            font-family: inherit;
+            line-height: inherit;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+        .btn-label {
+            display: block;
+            font-size: 0.75em;
+            font-weight: 400;
+            opacity: 0.85;
+            margin-top: 2px;
+        }
+        .order-form-section {
+            background: var(--color-bg-light);
+            border-radius: 12px;
+            padding: 32px;
+            margin-top: 24px;
+            width: 100%;
+        }
+        .order-form-section h3 {
+            color: var(--color-primary);
+            margin-bottom: 8px;
+        }
+        .order-form-section .subtitle {
+            color: var(--color-text-light);
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+        @media (max-width: 768px) {
+            .two-col-layout {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+            .lang-column-top .book-thumb {
+                width: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+    <div class="header-inner">
+        <a href="/" class="site-logo">
+            <img src="/static/images/alignment-puzzle-logo-web.jpg" alt="The Alignment Puzzle">
+        </a>
+        <button class="menu-toggle" aria-label="Toggle navigation">
+            <span></span><span></span><span></span>
+        </button>
+        <nav class="main-nav" id="mainNav">
+            <a href="/">Home</a>
+            <a href="/movies">Movies</a>
+            <a href="/whitepapers">Whitepapers</a>
+            <a href="/contact">Contact</a>
+            <a href="/order" class="nav-cta active">Order Book</a>
+        </nav>
+    </div>
+</header>
+
+<!-- Page Header -->
+<section class="page-header">
+    <h1>Order the Book</h1>
+    <p>Available in English and Dutch &mdash; as printed book or eBook</p>
+</section>
+
+<!-- Editions -->
+<section class="section">
+    <div class="container">
+        <h2 style="text-align: center; color: var(--color-primary); margin-bottom: 8px;">Choose Your Edition</h2>
+        <p style="text-align: center; color: var(--color-text-light); margin-bottom: 0;">The book is available in four editions. Select the one that suits you best.</p>
+
+        <div class="two-col-layout">
+
+            <!-- DUTCH COLUMN -->
+            <div class="lang-column">
+                <div class="lang-column-top">
+                    <div class="book-thumb">
+                        <img src="/static/images/KoopBoekNL.jpg" alt="De AlignmentPuzzel">
+                    </div>
+                    <div class="lang-info">
+                        <h2>Nederlands</h2>
+                        <div class="lang-flags">
+                            <img src="https://flagcdn.com/w80/nl.png" alt="Nederlandse vlag">
+                        </div>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <a href="https://www.managementboek.nl/boek/9789461266606/de-alignmentpuzzel-vernieuwde-editie-hans-veltman" class="btn btn-outline" target="_blank" rel="noopener">
+                        Gedrukt boek bestellen
+                        <span class="btn-label">via Managementboek.nl</span>
+                    </a>
+                    <a href="https://www.managementboek.nl/e-book/9789461266729/de-alignmentpuzzel-vernieuwde-editie-hans-veltman" class="btn btn-outline" target="_blank" rel="noopener">
+                        eBook kopen
+                        <span class="btn-label">via Managementboek.nl</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- ENGLISH COLUMN -->
+            <div class="lang-column">
+                <div class="lang-column-top">
+                    <div class="book-thumb">
+                        <img src="/static/images/KoopBookEN.png" alt="The Alignment Puzzle">
+                    </div>
+                    <div class="lang-info">
+                        <h2>English</h2>
+                        <div class="lang-flags">
+                            <img src="https://flagcdn.com/w80/gb.png" alt="British flag">
+                            <img src="https://flagcdn.com/w80/us.png" alt="US flag">
+                        </div>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <a href="https://www.amazon.nl/Alignment-Puzzle-Advanced-Business-Engineering-ebook/dp/B0G22JH2L1" class="btn btn-outline" target="_blank" rel="noopener">
+                        Buy eBook
+                        <span class="btn-label">via Amazon Kindle</span>
+                    </a>
+                    <button type="button" class="btn btn-outline" id="btnOrderPrinted" onclick="document.getElementById('order-form-section').style.display='block'; this.style.display='none';">
+                        Order Printed Book
+                        <span class="btn-label">direct from the authors (EU/UK only)</span>
+                    </button>
+                </div>
+
+                <!-- Order form for English printed edition (hidden by default) -->
+                <div class="order-form-section" id="order-form-section" style="display: none;">
+                    <h3>Order Printed Edition</h3>
+                    <p class="subtitle">Order directly from the authors &mdash; shipping within the EU/UK only (&euro;45,- incl. VAT and shipping).</p>
+
+                    <div id="orderMessage"></div>
+
+                    <form id="orderForm" action="/api/order" method="POST">
+                        <div class="quantity-selector">
+                            <label for="quantity">Quantity:</label>
+                            <input type="number" id="quantity" name="quantity" value="1" min="1" max="99">
+                        </div>
+
+                        <h4 style="color: var(--color-primary); margin-bottom: 12px;">Shipping Details</h4>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="order_name">Full Name *</label>
+                                <input type="text" id="order_name" name="name" required>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="order_email">Email *</label>
+                                <input type="email" id="order_email" name="email" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="address">Address *</label>
+                            <input type="text" id="address" name="address" required>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="postal_code">Postal Code *</label>
+                                <input type="text" id="postal_code" name="postal_code" required>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="city">City *</label>
+                                <input type="text" id="city" name="city" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="country">Country *</label>
+                            <select id="country" name="country" required>
+                                <option value="AT">Austria</option>
+                                <option value="BE">Belgium</option>
+                                <option value="BG">Bulgaria</option>
+                                <option value="HR">Croatia</option>
+                                <option value="CY">Cyprus</option>
+                                <option value="CZ">Czech Republic</option>
+                                <option value="DK">Denmark</option>
+                                <option value="EE">Estonia</option>
+                                <option value="FI">Finland</option>
+                                <option value="FR">France</option>
+                                <option value="DE">Germany</option>
+                                <option value="GR">Greece</option>
+                                <option value="HU">Hungary</option>
+                                <option value="IE">Ireland</option>
+                                <option value="IT">Italy</option>
+                                <option value="LV">Latvia</option>
+                                <option value="LT">Lithuania</option>
+                                <option value="LU">Luxembourg</option>
+                                <option value="MT">Malta</option>
+                                <option value="NL" selected>Netherlands</option>
+                                <option value="PL">Poland</option>
+                                <option value="PT">Portugal</option>
+                                <option value="RO">Romania</option>
+                                <option value="SK">Slovakia</option>
+                                <option value="SI">Slovenia</option>
+                                <option value="ES">Spain</option>
+                                <option value="SE">Sweden</option>
+                                <option value="GB">United Kingdom</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 16px; padding: 14px;">
+                            Proceed to Payment
+                        </button>
+                        <p style="text-align: center; margin-top: 10px; font-size: 0.82em; color: var(--color-text-light);">
+                            Secure payment via Mollie (iDEAL, credit card, Bancontact, and more)
+                        </p>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <div class="footer-inner">
+        <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="/movies">Movies</a>
+            <a href="/whitepapers">Whitepapers</a>
+            <a href="/contact">Contact</a>
+            <a href="/order">Order Book</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 The Alignment Puzzle. All rights reserved.</p>
+    </div>
+</footer>
+
+<script src="/static/js/main.js"></script>
+</body>
+</html>

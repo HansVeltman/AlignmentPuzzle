@@ -1,0 +1,17 @@
+.env
+.env.example
+.claude/
+__pycache__/
+*.pyc
+data/orders/
+data/messages/
+*.xlsx
+*.docx
+~$*
+.vscode/
+.idea/
+static/images/OLD/
+static/images/__MACOSX/
+static/pdfs/ORG BACKUPS/
+static/images/authors/Corel Auto-Preserve/
+2026 03 31 Vraag Claude.txt

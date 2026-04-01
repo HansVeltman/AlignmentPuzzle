@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: alignmentpuzzle
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MOLLIE_API_KEY
+        sync: false
+      - key: CONTACT_EMAIL
+        value: info@alignmentpuzzle.com
+      - key: BASE_URL
+        value: https://www.alignmentpuzzle.com
+      - key: PYTHON_VERSION
+        value: "3.11"
