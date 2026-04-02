@@ -124,9 +124,21 @@ async def api_contact(msg: ContactMessage):
         "timestamp": datetime.now().isoformat()
     }, indent=2), encoding="utf-8")
 
-    # TODO: Send email notification via SMTP
-    # This can be enabled once SMTP credentials are configured in .env
-    # See backend/email_service.py for the implementation
+    try:
+        from backend.email_service import _send_email, NOTIFY_EMAIL
+        _send_email(
+            NOTIFY_EMAIL,
+            f"Contact form: {msg.subject or 'No subject'} - from {msg.name}",
+            f"""<div style="font-family: Arial, sans-serif; max-width: 600px;">
+                <h2 style="color: #1a3a5c;">New Contact Message</h2>
+                <p><strong>From:</strong> {msg.name} &lt;{msg.email}&gt;</p>
+                <p><strong>Subject:</strong> {msg.subject or 'N/A'}</p>
+                <hr style="border-top: 1px solid #ddd;">
+                <p>{msg.message}</p>
+            </div>"""
+        )
+    except Exception as e:
+        logger.error(f"Failed to send contact notification: {e}")
 
     return {"success": True, "message": "Message received"}
 
@@ -234,7 +246,10 @@ async def mollie_webhook(request: Request):
 
                 logger.info(f"Order {order_id} status updated to: {payment.status}")
 
-                # TODO: Send order confirmation email if paid
+                if payment.is_paid():
+                    from backend.email_service import send_order_notification, send_order_confirmation
+                    send_order_notification(order_data)
+                    send_order_confirmation(order_data)
 
     except Exception as e:
         logger.error(f"Webhook error: {e}")
