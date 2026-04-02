@@ -23,7 +23,7 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 FROM_EMAIL = "info@alignmentpuzzle.com"
 NOTIFY_EMAIL = os.getenv("CONTACT_EMAIL", "info@alignmentpuzzle.com")
 
-VAT_RATE = 0.21
+VAT_RATE = 0.09
 BOOK_PRICE_INCL = 45.00
 BOOK_PRICE_EXCL = round(BOOK_PRICE_INCL / (1 + VAT_RATE), 2)
 
@@ -166,7 +166,7 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     pdf.cell(35, 7, f"EUR {total_excl:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_x(x_label)
-    pdf.cell(45, 7, "VAT (21%):")
+    pdf.cell(45, 7, "VAT (9%):")
     pdf.cell(35, 7, f"EUR {total_vat:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_x(x_label)
