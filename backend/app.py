@@ -26,7 +26,7 @@ MOLLIE_API_KEY = os.getenv("MOLLIE_API_KEY", "")
 CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "info@alignmentpuzzle.com")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
-BOOK_PRICE = 1.00  # TEMP: test price, change back to 45.00 after testing
+BOOK_PRICE = 45.00
 INVOICE_COUNTER_FILE = DATA_DIR / "invoice_counter.json"
 INVOICE_PREFIX = "AP"
 INVOICE_START = 9876
