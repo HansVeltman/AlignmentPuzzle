@@ -24,8 +24,6 @@ FROM_EMAIL = "info@alignmentpuzzle.com"
 NOTIFY_EMAIL = os.getenv("CONTACT_EMAIL", "info@alignmentpuzzle.com")
 
 VAT_RATE = 0.09
-BOOK_PRICE_INCL = 45.00
-BOOK_PRICE_EXCL = round(BOOK_PRICE_INCL / (1 + VAT_RATE), 2)
 
 
 def _send_email(to_email: str, subject: str, html_body: str, attachments=None):
@@ -65,9 +63,10 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     """Generate a PDF invoice and return as bytes."""
     quantity = order_data["quantity"]
     total_incl = order_data["total"]
-    total_excl = round(BOOK_PRICE_EXCL * quantity, 2)
-    total_vat = round(total_incl - total_excl, 2)
-    unit_excl = BOOK_PRICE_EXCL
+    total_excl = round(total_incl / (1 + VAT_RATE), 2)
+    total_vat = round(VAT_RATE / (1 + VAT_RATE) * total_incl, 2)
+    unit_price_incl = round(total_incl / quantity, 2)
+    unit_excl = round(unit_price_incl / (1 + VAT_RATE), 2)
     order_date = datetime.fromisoformat(order_data["created_at"]).strftime("%d %B %Y")
 
     from pathlib import Path
@@ -245,9 +244,10 @@ def send_order_confirmation(order_data: dict):
     """Send order confirmation with invoice PDF to the customer."""
     quantity = order_data['quantity']
     total_incl = order_data['total']
-    total_excl = round(BOOK_PRICE_EXCL * quantity, 2)
-    total_vat = round(total_incl - total_excl, 2)
-    unit_excl = BOOK_PRICE_EXCL
+    total_excl = round(total_incl / (1 + VAT_RATE), 2)
+    total_vat = round(VAT_RATE / (1 + VAT_RATE) * total_incl, 2)
+    unit_price_incl = round(total_incl / quantity, 2)
+    unit_excl = round(unit_price_incl / (1 + VAT_RATE), 2)
     order_date = datetime.fromisoformat(order_data['created_at']).strftime("%d %B %Y")
 
     subject = f"Order Confirmation - {order_data['order_id']}"
