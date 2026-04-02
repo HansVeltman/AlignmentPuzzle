@@ -13,3 +13,7 @@ services:
         value: https://www.alignmentpuzzle.com
       - key: PYTHON_VERSION
         value: "3.11"
+    disk:
+      name: alignmentpuzzle-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1

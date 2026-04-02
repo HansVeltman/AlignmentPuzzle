@@ -9,3 +9,4 @@ python-dotenv>=1.0
 pydantic[email]
 fpdf2>=2.7
 Pillow>=10.0
+filelock>=3.12

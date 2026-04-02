@@ -26,9 +26,30 @@ CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "info@alignmentpuzzle.com")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 BOOK_PRICE = 45.00
+DATA_DIR = BASE_DIR / "data"
+INVOICE_COUNTER_FILE = DATA_DIR / "invoice_counter.json"
+INVOICE_PREFIX = "AP"
+INVOICE_START = 9876
 
 # Ensure data directories exist
 ORDERS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _next_invoice_number() -> str:
+    """Get the next sequential invoice number (e.g. AP09876, AP09877, ...)."""
+    import filelock
+    lock = filelock.FileLock(str(INVOICE_COUNTER_FILE) + ".lock", timeout=10)
+    with lock:
+        if INVOICE_COUNTER_FILE.exists():
+            counter_data = json.loads(INVOICE_COUNTER_FILE.read_text(encoding="utf-8"))
+            current = counter_data.get("next", INVOICE_START)
+        else:
+            current = INVOICE_START
+        next_num = current + 1
+        INVOICE_COUNTER_FILE.write_text(
+            json.dumps({"next": next_num}, indent=2), encoding="utf-8"
+        )
+    return f"{INVOICE_PREFIX}{current:05d}"
 
 # --- Logging ---
 logging.basicConfig(level=logging.INFO)
@@ -151,7 +172,7 @@ async def api_order(order: OrderRequest):
         raise HTTPException(status_code=400, detail="Invalid quantity")
 
     total = round(BOOK_PRICE * order.quantity, 2)
-    order_id = f"ORD-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    order_id = _next_invoice_number()
 
     # Save order to file
     order_data = {
