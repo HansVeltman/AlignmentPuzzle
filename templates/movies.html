@@ -10,6 +10,78 @@
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="icon" href="/static/images/favicon.png" type="image/png">
+    <style>
+        .movie-player {
+            max-width: 800px;
+            margin: 0 auto 48px;
+        }
+        .movie-player .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+        }
+        .movie-player .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .movie-player-title {
+            text-align: center;
+            color: var(--color-primary);
+            margin-top: 16px;
+            font-size: 1.2em;
+        }
+        .movie-list-heading {
+            color: var(--color-primary);
+            margin-bottom: 24px;
+            font-size: 1.1em;
+        }
+        .movie-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 24px;
+        }
+        .movie-thumb {
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .movie-thumb:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        }
+        .movie-thumb.active {
+            outline: 3px solid var(--color-accent);
+        }
+        .movie-thumb img {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            display: block;
+        }
+        .movie-thumb h3 {
+            padding: 12px 14px;
+            font-size: 0.85em;
+            color: var(--color-primary);
+            margin: 0;
+            line-height: 1.4;
+        }
+        @media (max-width: 768px) {
+            .movie-list {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 16px;
+            }
+        }
+    </style>
 </head>
 <body>
 
@@ -27,7 +99,8 @@
             <a href="/movies" class="active">Movies</a>
             <a href="/whitepapers">Whitepapers</a>
             <a href="/contact">Contact</a>
-            <a href="/order" class="nav-cta">Order Book</a>        </nav>
+            <a href="/order" class="nav-cta">Order Book</a>
+        </nav>
     </div>
 </header>
 
@@ -37,77 +110,67 @@
     <p>Short videos explaining the key concepts of The Alignment Puzzle</p>
 </section>
 
-<!-- Videos -->
+<!-- Video Player + Thumbnail List -->
 <section class="section">
     <div class="container">
-        <div class="video-grid">
-            <div class="video-card">
-                <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/uY-c7odOVnY" title="The secret to a well-aligned company" allowfullscreen loading="lazy"></iframe>
-                </div>
+
+        <!-- Main Player -->
+        <div class="movie-player">
+            <div class="video-wrapper">
+                <iframe id="moviePlayer" src="https://www.youtube-nocookie.com/embed/uY-c7odOVnY" title="Now playing" allowfullscreen loading="lazy"></iframe>
+            </div>
+            <h2 class="movie-player-title" id="movieTitle">The Secret to a Well-Aligned Company</h2>
+        </div>
+
+        <!-- Thumbnail Grid -->
+        <h3 class="movie-list-heading">Choose a video</h3>
+        <div class="movie-list">
+            <div class="movie-thumb active" onclick="playMovie('uY-c7odOVnY', 'The Secret to a Well-Aligned Company', this)">
+                <img src="https://img.youtube.com/vi/uY-c7odOVnY/mqdefault.jpg" alt="The Secret to a Well-Aligned Company">
                 <h3>The Secret to a Well-Aligned Company</h3>
             </div>
-            <div class="video-card">
-                <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/ZpqxLuUXMQI" title="Why a supply chain strategy is essential" allowfullscreen loading="lazy"></iframe>
-                </div>
+            <div class="movie-thumb" onclick="playMovie('ZpqxLuUXMQI', 'Why a Supply Chain Strategy is Essential', this)">
+                <img src="https://img.youtube.com/vi/ZpqxLuUXMQI/mqdefault.jpg" alt="Why a Supply Chain Strategy is Essential">
                 <h3>Why a Supply Chain Strategy is Essential</h3>
             </div>
-            <div class="video-card">
-                <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/tuE6wCDkLyg" title="Back to the core" allowfullscreen loading="lazy"></iframe>
-                </div>
+            <div class="movie-thumb" onclick="playMovie('tuE6wCDkLyg', 'Back to the Core', this)">
+                <img src="https://img.youtube.com/vi/tuE6wCDkLyg/mqdefault.jpg" alt="Back to the Core">
                 <h3>Back to the Core</h3>
             </div>
-            <div class="video-card">
-                <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/heUnHZd20ck" title="The law of the conservation of waiting time" allowfullscreen loading="lazy"></iframe>
-                </div>
+            <div class="movie-thumb" onclick="playMovie('heUnHZd20ck', 'The Law of the Conservation of Waiting Time', this)">
+                <img src="https://img.youtube.com/vi/heUnHZd20ck/mqdefault.jpg" alt="The Law of the Conservation of Waiting Time">
                 <h3>The Law of the Conservation of Waiting Time</h3>
             </div>
-            <div class="video-card">
-                <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/KK3g0iE0z40" title="Why you shouldn't focus on value and profit" allowfullscreen loading="lazy"></iframe>
-                </div>
-                <h3>Why You Shouldn't Focus on Value and Profit</h3>
+            <div class="movie-thumb" onclick="playMovie('KK3g0iE0z40', 'Why You Should Not Focus on Value and Profit', this)">
+                <img src="https://img.youtube.com/vi/KK3g0iE0z40/mqdefault.jpg" alt="Why You Should Not Focus on Value and Profit">
+                <h3>Why You Should Not Focus on Value and Profit</h3>
             </div>
-            <div class="video-card">
-                <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/WCNHNXjmTNY" title="De 12 bedrijfsstrategieën" allowfullscreen loading="lazy"></iframe>
-                </div>
+            <div class="movie-thumb" onclick="playMovie('WCNHNXjmTNY', 'How to Kill All Motivation with the Vicious Cycle of Regulatory Pressure', this)">
+                <img src="https://img.youtube.com/vi/WCNHNXjmTNY/mqdefault.jpg" alt="How to Kill All Motivation with the Vicious Cycle of Regulatory Pressure">
                 <h3>How to Kill All Motivation with the Vicious Cycle of Regulatory Pressure</h3>
             </div>
-            <div class="video-card">
-                <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/FPe7r1Jb0_U" title="How to kill all motivation with the toxic cycle of regulation" allowfullscreen loading="lazy"></iframe>
-                </div>
+            <div class="movie-thumb" onclick="playMovie('FPe7r1Jb0_U', 'The Law of Boundless Organization Obesity (Law BOO)', this)">
+                <img src="https://img.youtube.com/vi/FPe7r1Jb0_U/mqdefault.jpg" alt="The Law of Boundless Organization Obesity">
                 <h3>The Law of Boundless Organization Obesity (Law BOO)</h3>
             </div>
-            <div class="video-card">
-                <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/PBC4RD1slYs" title="How so many IT projects fail" allowfullscreen loading="lazy"></iframe>
-                </div>
+            <div class="movie-thumb" onclick="playMovie('PBC4RD1slYs', 'How So Many IT Projects Fail', this)">
+                <img src="https://img.youtube.com/vi/PBC4RD1slYs/mqdefault.jpg" alt="How So Many IT Projects Fail">
                 <h3>How So Many IT Projects Fail</h3>
             </div>
-            <div class="video-card">
-                <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/Ht2oOSaAy5U" title="The stage director's lesson for team management" allowfullscreen loading="lazy"></iframe>
-                </div>
+            <div class="movie-thumb" onclick="playMovie('Ht2oOSaAy5U', 'The Stage Director Lesson for Team Management', this)">
+                <img src="https://img.youtube.com/vi/Ht2oOSaAy5U/mqdefault.jpg" alt="The Stage Director Lesson for Team Management">
                 <h3>The Stage Director's Lesson for Team Management</h3>
             </div>
-            <div class="video-card">
-                <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/MA95PVqrHhw" title="The 5 reasons why changes fail" allowfullscreen loading="lazy"></iframe>
-                </div>
+            <div class="movie-thumb" onclick="playMovie('MA95PVqrHhw', 'The 5 Reasons Why Changes Fail', this)">
+                <img src="https://img.youtube.com/vi/MA95PVqrHhw/mqdefault.jpg" alt="The 5 Reasons Why Changes Fail">
                 <h3>The 5 Reasons Why Changes Fail</h3>
             </div>
-            <div class="video-card">
-                <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/coARVIEgeOM" title="" allowfullscreen loading="lazy"></iframe>
-                </div>
+            <div class="movie-thumb" onclick="playMovie('coARVIEgeOM', 'Our Closing in Style: The Grand Finale', this)">
+                <img src="https://img.youtube.com/vi/coARVIEgeOM/mqdefault.jpg" alt="Our Closing in Style: The Grand Finale">
                 <h3>Our Closing in Style: The Grand Finale</h3>
             </div>
         </div>
+
     </div>
 </section>
 
@@ -126,5 +189,14 @@
 </footer>
 
 <script src="/static/js/main.js"></script>
+<script>
+function playMovie(videoId, title, el) {
+    document.getElementById('moviePlayer').src = 'https://www.youtube-nocookie.com/embed/' + videoId + '?autoplay=1';
+    document.getElementById('movieTitle').textContent = title;
+    document.querySelectorAll('.movie-thumb').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    document.querySelector('.movie-player').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
 </body>
 </html>
