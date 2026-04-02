@@ -20,13 +20,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
-ORDERS_DIR = BASE_DIR / "data" / "orders"
+DATA_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR / "data")))
+ORDERS_DIR = DATA_DIR / "orders"
 MOLLIE_API_KEY = os.getenv("MOLLIE_API_KEY", "")
 CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "info@alignmentpuzzle.com")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 BOOK_PRICE = 45.00
-DATA_DIR = BASE_DIR / "data"
 INVOICE_COUNTER_FILE = DATA_DIR / "invoice_counter.json"
 INVOICE_PREFIX = "AP"
 INVOICE_START = 9876
@@ -132,7 +132,7 @@ async def api_contact(msg: ContactMessage):
     logger.info(f"Contact form from {msg.name} <{msg.email}>: {msg.subject}")
 
     # Save to file as a simple store (can be replaced with DB later)
-    messages_dir = BASE_DIR / "data" / "messages"
+    messages_dir = DATA_DIR / "messages"
     messages_dir.mkdir(parents=True, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
