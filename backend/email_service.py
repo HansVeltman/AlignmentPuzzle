@@ -71,25 +71,18 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     order_date = datetime.fromisoformat(order_data["created_at"]).strftime("%d %B %Y")
 
     from pathlib import Path
-    logo_path = Path(__file__).resolve().parent.parent / "static" / "images" / "alignment-puzzle-logo-web.jpg"
+    header_path = Path(__file__).resolve().parent.parent / "static" / "images" / "InvoiceHeader.jpg"
 
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=20)
 
-    # Header bar with logo
-    pdf.set_fill_color(26, 58, 92)
-    pdf.rect(0, 0, 210, 40, "F")
-    if logo_path.exists():
-        pdf.image(str(logo_path), x=15, y=5, h=30)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_font("Helvetica", "B", 20)
-    pdf.set_xy(60, 12)
-    pdf.cell(0, 15, "The Alignment Puzzle", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_text_color(0, 0, 0)
+    # Header image full width (A4 = 210mm)
+    if header_path.exists():
+        pdf.image(str(header_path), x=0, y=0, w=210)
 
-    # Sender address
-    pdf.set_y(48)
+    # Sender address below header
+    pdf.set_y(45)
     pdf.set_font("Helvetica", "", 8)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(0, 4, "The Alignment Puzzle | Posthoornstraat 11 | 3011 WD Rotterdam | Holland",
