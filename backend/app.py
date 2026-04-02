@@ -305,10 +305,20 @@ async def export_orders(secret: str = ""):
     if not orders:
         return JSONResponse({"message": "No orders found"})
 
+    # Calculate VAT fields
+    VAT_RATE = 0.09
+    for order in orders:
+        total_incl = order.get("total", 0)
+        total_excl = round(total_incl / (1 + VAT_RATE), 2)
+        order["total_excl_vat"] = total_excl
+        order["vat_amount"] = round(total_incl - total_excl, 2)
+        order["total_incl_vat"] = total_incl
+
     # Build CSV
     output = io.StringIO()
     fields = ["order_id", "name", "email", "address", "postal_code", "city",
-              "country", "quantity", "total", "status", "created_at", "paid_at"]
+              "country", "quantity", "total_excl_vat", "vat_amount", "total_incl_vat",
+              "status", "created_at", "paid_at"]
     writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
     writer.writeheader()
     for order in orders:
