@@ -281,6 +281,55 @@ async def mollie_webhook(request: Request):
     return JSONResponse({"status": "ok"})
 
 
+# --- API: Export Orders as CSV via email ---
+ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
+
+
+@app.get("/api/admin/export-orders")
+async def export_orders(secret: str = ""):
+    """Export all orders as CSV and email to admin."""
+    if not ADMIN_SECRET or secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    import csv
+    import io
+
+    orders = []
+    if ORDERS_DIR.exists():
+        for f in sorted(ORDERS_DIR.glob("*.json")):
+            try:
+                orders.append(json.loads(f.read_text(encoding="utf-8")))
+            except Exception:
+                continue
+
+    if not orders:
+        return JSONResponse({"message": "No orders found"})
+
+    # Build CSV
+    output = io.StringIO()
+    fields = ["order_id", "name", "email", "address", "postal_code", "city",
+              "country", "quantity", "total", "status", "created_at", "paid_at"]
+    writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
+    writer.writeheader()
+    for order in orders:
+        writer.writerow(order)
+
+    csv_bytes = output.getvalue().encode("utf-8")
+
+    from backend.email_service import _send_email
+    _send_email(
+        CONTACT_EMAIL,
+        f"Order Export - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"""<div style="font-family: Arial, sans-serif;">
+            <h2 style="color: #1a3a5c;">Order Export</h2>
+            <p>Attached is a CSV export of all {len(orders)} orders.</p>
+        </div>""",
+        attachments=[(f"orders-{datetime.now().strftime('%Y%m%d')}.csv", csv_bytes)]
+    )
+
+    return JSONResponse({"message": f"CSV with {len(orders)} orders emailed to {CONTACT_EMAIL}"})
+
+
 # --- Run ---
 if __name__ == "__main__":
     import uvicorn
