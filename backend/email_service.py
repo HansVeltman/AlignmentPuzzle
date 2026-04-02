@@ -70,21 +70,35 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     unit_excl = BOOK_PRICE_EXCL
     order_date = datetime.fromisoformat(order_data["created_at"]).strftime("%d %B %Y")
 
+    from pathlib import Path
+    logo_path = Path(__file__).resolve().parent.parent / "static" / "images" / "alignment-puzzle-logo-web.jpg"
+
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=20)
 
-    # Header bar
+    # Header bar with logo
     pdf.set_fill_color(26, 58, 92)
-    pdf.rect(0, 0, 210, 35, "F")
+    pdf.rect(0, 0, 210, 40, "F")
+    if logo_path.exists():
+        pdf.image(str(logo_path), x=15, y=5, h=30)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Helvetica", "B", 20)
-    pdf.set_y(10)
-    pdf.cell(0, 15, "The Alignment Puzzle", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_xy(60, 12)
+    pdf.cell(0, 15, "The Alignment Puzzle", new_x="LMARGIN", new_y="NEXT")
     pdf.set_text_color(0, 0, 0)
 
+    # Sender address
+    pdf.set_y(48)
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 4, "The Alignment Puzzle | Posthoornstraat 11 | 3011 WD Rotterdam | Holland",
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(4)
+
     # Invoice title
-    pdf.set_y(45)
+    pdf.set_y(58)
     pdf.set_font("Helvetica", "B", 16)
     pdf.cell(0, 10, "INVOICE", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
