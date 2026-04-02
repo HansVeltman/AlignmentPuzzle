@@ -92,6 +92,12 @@ def serve_template(name: str) -> HTMLResponse:
 
 
 # --- Page Routes ---
+@app.get("/sitemap.xml")
+async def sitemap():
+    sitemap_path = STATIC_DIR / "sitemap.xml"
+    return HTMLResponse(content=sitemap_path.read_text(encoding="utf-8"), media_type="application/xml")
+
+
 @app.get("/", response_class=HTMLResponse)
 async def home():
     return serve_template("index.html")
