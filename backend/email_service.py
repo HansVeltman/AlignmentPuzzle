@@ -1,14 +1,18 @@
 """
 Email service for The Alignment Puzzle.
-Sends order notifications and customer confirmations via SMTP.
+Sends order notifications and customer confirmations via SMTP,
+with PDF invoice attachment.
 """
 
 import os
+import io
 import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 from datetime import datetime
+from fpdf import FPDF
 
 logger = logging.getLogger("alignmentpuzzle")
 
@@ -24,17 +28,26 @@ BOOK_PRICE_INCL = 45.00
 BOOK_PRICE_EXCL = round(BOOK_PRICE_INCL / (1 + VAT_RATE), 2)
 
 
-def _send_email(to_email: str, subject: str, html_body: str):
-    """Send an email via SMTP."""
+def _send_email(to_email: str, subject: str, html_body: str, attachments=None):
+    """Send an email via SMTP with optional attachments."""
     if not SMTP_PASSWORD:
         logger.warning("SMTP_PASSWORD not set - skipping email")
         return False
 
-    msg = MIMEMultipart("alternative")
+    msg = MIMEMultipart("mixed")
     msg["From"] = f"The Alignment Puzzle <{FROM_EMAIL}>"
     msg["To"] = to_email
     msg["Subject"] = subject
-    msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+    html_part = MIMEMultipart("alternative")
+    html_part.attach(MIMEText(html_body, "html", "utf-8"))
+    msg.attach(html_part)
+
+    if attachments:
+        for filename, data in attachments:
+            part = MIMEApplication(data, Name=filename)
+            part["Content-Disposition"] = f'attachment; filename="{filename}"'
+            msg.attach(part)
 
     try:
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
@@ -48,8 +61,141 @@ def _send_email(to_email: str, subject: str, html_body: str):
         return False
 
 
+def _generate_invoice_pdf(order_data: dict) -> bytes:
+    """Generate a PDF invoice and return as bytes."""
+    quantity = order_data["quantity"]
+    total_incl = order_data["total"]
+    total_excl = round(BOOK_PRICE_EXCL * quantity, 2)
+    total_vat = round(total_incl - total_excl, 2)
+    unit_excl = BOOK_PRICE_EXCL
+    order_date = datetime.fromisoformat(order_data["created_at"]).strftime("%d %B %Y")
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=20)
+
+    # Header bar
+    pdf.set_fill_color(26, 58, 92)
+    pdf.rect(0, 0, 210, 35, "F")
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.set_y(10)
+    pdf.cell(0, 15, "The Alignment Puzzle", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_text_color(0, 0, 0)
+
+    # Invoice title
+    pdf.set_y(45)
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, "INVOICE", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+
+    # Invoice details
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(40, 6, "Invoice number:")
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 6, order_data["order_id"], new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(40, 6, "Date:")
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 6, order_date, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(40, 6, "Payment status:")
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 6, "Paid", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(8)
+
+    # Ship to
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_text_color(26, 58, 92)
+    pdf.cell(0, 8, "Ship to:", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 6, order_data["name"], new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, order_data["address"], new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, f"{order_data['postal_code']} {order_data['city']}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, order_data["country"], new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(10)
+
+    # Line separator
+    pdf.set_draw_color(26, 58, 92)
+    pdf.set_line_width(0.5)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(4)
+
+    # Table header
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_fill_color(245, 247, 250)
+    col_desc = 90
+    col_qty = 25
+    col_unit = 35
+    col_amount = 35
+    pdf.cell(col_desc, 8, "Description", border=0, fill=True)
+    pdf.cell(col_qty, 8, "Qty", border=0, align="C", fill=True)
+    pdf.cell(col_unit, 8, "Unit price", border=0, align="R", fill=True)
+    pdf.cell(col_amount, 8, "Amount", border=0, align="R", fill=True, new_x="LMARGIN", new_y="NEXT")
+
+    # Table row
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(col_desc, 7, "The Alignment Puzzle")
+    pdf.cell(col_qty, 7, str(quantity), align="C")
+    pdf.cell(col_unit, 7, f"EUR {unit_excl:.2f}", align="R")
+    pdf.cell(col_amount, 7, f"EUR {total_excl:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(col_desc, 5, "Business Engineering for Aligned Organizations (2nd ed.)", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(6)
+
+    # Separator
+    pdf.set_draw_color(200, 200, 200)
+    pdf.set_line_width(0.2)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(4)
+
+    # Totals
+    pdf.set_font("Helvetica", "", 10)
+    x_label = 120
+    x_value = 165
+
+    pdf.set_x(x_label)
+    pdf.cell(45, 7, "Subtotal (excl. VAT):")
+    pdf.cell(35, 7, f"EUR {total_excl:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_x(x_label)
+    pdf.cell(45, 7, "VAT (21%):")
+    pdf.cell(35, 7, f"EUR {total_vat:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_x(x_label)
+    pdf.cell(45, 7, "Shipping:")
+    pdf.cell(35, 7, "Included", align="R", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(2)
+    pdf.set_draw_color(26, 58, 92)
+    pdf.set_line_width(0.5)
+    pdf.line(x_label, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(4)
+
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.set_x(x_label)
+    pdf.cell(45, 10, "Total:")
+    pdf.cell(35, 10, f"EUR {total_incl:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
+
+    # Footer
+    pdf.ln(20)
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 5, "The Alignment Puzzle | info@alignmentpuzzle.com | www.alignmentpuzzle.com", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 5, "Thank you for your order!", align="C", new_x="LMARGIN", new_y="NEXT")
+
+    return pdf.output()
+
+
 def send_order_notification(order_data: dict):
-    """Send order notification to the shop owner."""
+    """Send order notification to the shop owner with PDF invoice."""
     subject = f"New order {order_data['order_id']} - {order_data['quantity']}x The Alignment Puzzle"
 
     html = f"""
@@ -73,15 +219,17 @@ def send_order_notification(order_data: dict):
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Paid at</td>
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">{order_data.get('paid_at', 'N/A')}</td></tr>
         </table>
-        <p style="color: #666;">Please ship the order to the address above.</p>
+        <p style="color: #666;">The invoice PDF is attached. Please ship the order to the address above.</p>
     </div>
     """
 
-    _send_email(NOTIFY_EMAIL, subject, html)
+    pdf_bytes = _generate_invoice_pdf(order_data)
+    filename = f"Invoice-{order_data['order_id']}.pdf"
+    _send_email(NOTIFY_EMAIL, subject, html, attachments=[(filename, pdf_bytes)])
 
 
 def send_order_confirmation(order_data: dict):
-    """Send order confirmation with invoice to the customer."""
+    """Send order confirmation with invoice PDF to the customer."""
     quantity = order_data['quantity']
     total_incl = order_data['total']
     total_excl = round(BOOK_PRICE_EXCL * quantity, 2)
@@ -99,63 +247,32 @@ def send_order_confirmation(order_data: dict):
 
         <div style="padding: 32px 24px;">
             <p>Dear {order_data['name']},</p>
-            <p>Thank you for your order! Your payment has been received. Below you will find your invoice.</p>
+            <p>Thank you for your order! Your payment has been received. Your invoice is attached as a PDF.</p>
 
             <div style="background: #f5f7fa; border-radius: 8px; padding: 24px; margin: 24px 0;">
-                <h2 style="color: #1a3a5c; margin-top: 0; font-size: 18px;">Invoice</h2>
-                <table style="width: 100%; font-size: 14px; margin-bottom: 12px;">
-                    <tr><td style="color: #666;">Invoice number:</td>
-                        <td style="text-align: right;">{order_data['order_id']}</td></tr>
-                    <tr><td style="color: #666;">Date:</td>
-                        <td style="text-align: right;">{order_date}</td></tr>
-                </table>
-
-                <hr style="border: none; border-top: 1px solid #ddd; margin: 16px 0;">
-
-                <h3 style="color: #1a3a5c; font-size: 15px; margin-bottom: 8px;">Ship to:</h3>
-                <p style="margin: 0; font-size: 14px;">
-                    {order_data['name']}<br>
-                    {order_data['address']}<br>
-                    {order_data['postal_code']} {order_data['city']}<br>
-                    {order_data['country']}
-                </p>
-
-                <hr style="border: none; border-top: 1px solid #ddd; margin: 16px 0;">
-
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                    <thead>
-                        <tr style="border-bottom: 2px solid #1a3a5c;">
-                            <th style="text-align: left; padding: 8px 0;">Description</th>
-                            <th style="text-align: center; padding: 8px 0;">Qty</th>
-                            <th style="text-align: right; padding: 8px 0;">Unit price</th>
-                            <th style="text-align: right; padding: 8px 0;">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr style="border-bottom: 1px solid #ddd;">
-                            <td style="padding: 8px 0;">The Alignment Puzzle<br>
-                                <span style="font-size: 12px; color: #666;">Business Engineering for Aligned Organizations (2nd ed.)</span></td>
-                            <td style="text-align: center; padding: 8px 0;">{quantity}</td>
-                            <td style="text-align: right; padding: 8px 0;">&euro; {unit_excl:.2f}</td>
-                            <td style="text-align: right; padding: 8px 0;">&euro; {total_excl:.2f}</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <table style="width: 100%; font-size: 14px; margin-top: 12px;">
-                    <tr><td style="padding: 4px 0;">Subtotal (excl. VAT):</td>
-                        <td style="text-align: right; padding: 4px 0;">&euro; {total_excl:.2f}</td></tr>
-                    <tr><td style="padding: 4px 0;">VAT (21%):</td>
-                        <td style="text-align: right; padding: 4px 0;">&euro; {total_vat:.2f}</td></tr>
-                    <tr><td style="padding: 4px 0;">Shipping:</td>
-                        <td style="text-align: right; padding: 4px 0;">Included</td></tr>
-                    <tr style="font-weight: bold; font-size: 16px; border-top: 2px solid #1a3a5c;">
-                        <td style="padding: 12px 0;">Total:</td>
-                        <td style="text-align: right; padding: 12px 0;">&euro; {total_incl:.2f}</td></tr>
+                <h2 style="color: #1a3a5c; margin-top: 0; font-size: 18px;">Order Summary</h2>
+                <table style="width: 100%; font-size: 14px;">
+                    <tr><td style="color: #666; padding: 4px 0;">Order number:</td>
+                        <td style="text-align: right; padding: 4px 0;">{order_data['order_id']}</td></tr>
+                    <tr><td style="color: #666; padding: 4px 0;">Date:</td>
+                        <td style="text-align: right; padding: 4px 0;">{order_date}</td></tr>
+                    <tr><td style="color: #666; padding: 4px 0;">Quantity:</td>
+                        <td style="text-align: right; padding: 4px 0;">{quantity}x The Alignment Puzzle</td></tr>
+                    <tr style="font-weight: bold; border-top: 1px solid #ddd;">
+                        <td style="padding: 8px 0;">Total:</td>
+                        <td style="text-align: right; padding: 8px 0;">&euro; {total_incl:.2f}</td></tr>
                 </table>
             </div>
 
-            <p>Your book will be shipped to the address above. You will receive a separate email when your order has been dispatched.</p>
+            <p>Your book will be shipped to:</p>
+            <p style="background: #f5f7fa; padding: 16px; border-radius: 8px;">
+                {order_data['name']}<br>
+                {order_data['address']}<br>
+                {order_data['postal_code']} {order_data['city']}<br>
+                {order_data['country']}
+            </p>
+
+            <p>You will receive a separate email when your order has been dispatched.</p>
 
             <p style="margin-top: 32px;">Kind regards,<br>
             <strong>The Alignment Puzzle Team</strong><br>
@@ -168,4 +285,6 @@ def send_order_confirmation(order_data: dict):
     </div>
     """
 
-    _send_email(order_data['email'], subject, html)
+    pdf_bytes = _generate_invoice_pdf(order_data)
+    filename = f"Invoice-{order_data['order_id']}.pdf"
+    _send_email(order_data['email'], subject, html, attachments=[(filename, pdf_bytes)])
