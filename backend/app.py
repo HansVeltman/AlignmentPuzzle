@@ -247,12 +247,15 @@ async def mollie_webhook(request: Request):
                 logger.info(f"Order {order_id} status updated to: {payment.status}")
 
                 if payment.is_paid():
-                    from backend.email_service import send_order_notification, send_order_confirmation
-                    send_order_notification(order_data)
-                    send_order_confirmation(order_data)
+                    try:
+                        from backend.email_service import send_order_notification, send_order_confirmation
+                        send_order_notification(order_data)
+                        send_order_confirmation(order_data)
+                    except Exception as email_err:
+                        logger.error(f"Email error for {order_id}: {email_err}", exc_info=True)
 
     except Exception as e:
-        logger.error(f"Webhook error: {e}")
+        logger.error(f"Webhook error: {e}", exc_info=True)
 
     return JSONResponse({"status": "ok"})
 

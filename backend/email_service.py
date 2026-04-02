@@ -78,11 +78,17 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     pdf.set_auto_page_break(auto=True, margin=20)
 
     # Header image full width (A4 = 210mm)
+    header_bottom = 10
     if header_path.exists():
+        from PIL import Image as PILImage
+        with PILImage.open(header_path) as img:
+            img_w, img_h = img.size
+            header_height_mm = (img_h / img_w) * 210
         pdf.image(str(header_path), x=0, y=0, w=210)
+        header_bottom = header_height_mm + 5
 
     # Sender address below header
-    pdf.set_y(45)
+    pdf.set_y(header_bottom)
     pdf.set_font("Helvetica", "", 8)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(0, 4, "The Alignment Puzzle | Posthoornstraat 11 | 3011 WD Rotterdam | Holland",
@@ -91,7 +97,7 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     pdf.ln(4)
 
     # Invoice title
-    pdf.set_y(58)
+    pdf.ln(2)
     pdf.set_font("Helvetica", "B", 16)
     pdf.cell(0, 10, "INVOICE", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
