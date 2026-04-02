@@ -8,6 +8,7 @@ import os
 import io
 import logging
 import smtplib
+import html as html_escape
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
@@ -57,6 +58,11 @@ def _send_email(to_email: str, subject: str, html_body: str, attachments=None):
     except Exception as e:
         logger.error(f"Failed to send email to {to_email}: {e}")
         return False
+
+
+def _safe(value) -> str:
+    """Escape a value for safe HTML rendering."""
+    return html_escape.escape(str(value))
 
 
 def _generate_invoice_pdf(order_data: dict) -> bytes:
@@ -215,21 +221,21 @@ def send_order_notification(order_data: dict):
         <h2 style="color: #1a3a5c;">New Order Received</h2>
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Order ID</td>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{order_data['order_id']}</td></tr>
+                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{_safe(order_data['order_id'])}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Customer</td>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{order_data['name']}</td></tr>
+                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{_safe(order_data['name'])}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Email</td>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{order_data['email']}</td></tr>
+                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{_safe(order_data['email'])}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Address</td>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{order_data['address']}<br>
-                    {order_data['postal_code']} {order_data['city']}<br>
-                    {order_data['country']}</td></tr>
+                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{_safe(order_data['address'])}<br>
+                    {_safe(order_data['postal_code'])} {_safe(order_data['city'])}<br>
+                    {_safe(order_data['country'])}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Quantity</td>
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">{order_data['quantity']}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Total</td>
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">&euro; {order_data['total']:.2f}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Paid at</td>
-                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{order_data.get('paid_at', 'N/A')}</td></tr>
+                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{_safe(order_data.get('paid_at', 'N/A'))}</td></tr>
         </table>
         <p style="color: #666;">The invoice PDF is attached. Please ship the order to the address above.</p>
     </div>
@@ -259,7 +265,7 @@ def send_order_confirmation(order_data: dict):
         </div>
 
         <div style="padding: 32px 24px;">
-            <p>Dear {order_data['name']},</p>
+            <p>Dear {_safe(order_data['name'])},</p>
             <p>Thank you for your order! Your payment has been received. Your invoice is attached as a PDF.</p>
 
             <div style="background: #f5f7fa; border-radius: 8px; padding: 24px; margin: 24px 0;">
@@ -279,10 +285,10 @@ def send_order_confirmation(order_data: dict):
 
             <p>Your book will be shipped to:</p>
             <p style="background: #f5f7fa; padding: 16px; border-radius: 8px;">
-                {order_data['name']}<br>
-                {order_data['address']}<br>
-                {order_data['postal_code']} {order_data['city']}<br>
-                {order_data['country']}
+                {_safe(order_data['name'])}<br>
+                {_safe(order_data['address'])}<br>
+                {_safe(order_data['postal_code'])} {_safe(order_data['city'])}<br>
+                {_safe(order_data['country'])}
             </p>
 
             <p>You will receive a separate email when your order has been dispatched.</p>

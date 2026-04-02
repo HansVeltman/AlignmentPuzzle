@@ -60,6 +60,16 @@
                         <label for="message">Message *</label>
                         <textarea id="message" name="message" required></textarea>
                     </div>
+                    <!-- Honeypot - hidden from humans, bots will fill it in -->
+                    <div style="position: absolute; left: -9999px;" aria-hidden="true">
+                        <label for="website">Website</label>
+                        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+                    </div>
+                    <!-- Human verification -->
+                    <div class="form-group">
+                        <label for="human_answer">Verification: What is 3 + 4? *</label>
+                        <input type="text" id="human_answer" name="human_answer" required placeholder="Enter the answer" autocomplete="off">
+                    </div>
                     <button type="submit" class="btn btn-primary">Send Message</button>
                 </form>
             </div>

@@ -6,6 +6,9 @@ Serves static pages, handles contact form and Mollie payments.
 import os
 import json
 import logging
+import html as html_escape
+import time
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
@@ -54,6 +57,24 @@ def _next_invoice_number() -> str:
 # --- Logging ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("alignmentpuzzle")
+
+# --- Rate Limiting ---
+_rate_limit_store = defaultdict(list)
+RATE_LIMIT_WINDOW = 300  # 5 minutes
+RATE_LIMIT_MAX_CONTACT = 5  # max contact submissions per window
+RATE_LIMIT_MAX_ORDER = 10  # max order submissions per window
+
+
+def _check_rate_limit(client_ip: str, action: str, max_requests: int) -> bool:
+    """Return True if request is allowed, False if rate limited."""
+    key = f"{action}:{client_ip}"
+    now = time.time()
+    _rate_limit_store[key] = [t for t in _rate_limit_store[key] if now - t < RATE_LIMIT_WINDOW]
+    if len(_rate_limit_store[key]) >= max_requests:
+        return False
+    _rate_limit_store[key].append(now)
+    return True
+
 
 # --- App ---
 app = FastAPI(title="The Alignment Puzzle", docs_url=None, redoc_url=None)
@@ -113,6 +134,8 @@ class ContactMessage(BaseModel):
     email: EmailStr
     subject: str = ""
     message: str
+    website: str = ""  # honeypot - must be empty
+    human_answer: str = ""  # simple math answer
 
 
 class OrderRequest(BaseModel):
@@ -127,11 +150,32 @@ class OrderRequest(BaseModel):
 
 # --- API: Contact Form ---
 @app.post("/api/contact")
-async def api_contact(msg: ContactMessage):
+async def api_contact(msg: ContactMessage, request: Request):
     """Save contact message and optionally send email."""
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Rate limiting
+    if not _check_rate_limit(client_ip, "contact", RATE_LIMIT_MAX_CONTACT):
+        raise HTTPException(status_code=429, detail="Too many messages. Please try again later.")
+
+    # Honeypot check - bots fill in hidden fields
+    if msg.website:
+        logger.warning(f"Honeypot triggered from {client_ip}")
+        return {"success": True, "message": "Message received"}  # fake success
+
+    # Human test - answer must be "7"
+    if msg.human_answer.strip() != "7":
+        raise HTTPException(status_code=400, detail="Incorrect answer to the verification question. Please try again.")
+
     logger.info(f"Contact form from {msg.name} <{msg.email}>: {msg.subject}")
 
-    # Save to file as a simple store (can be replaced with DB later)
+    # Escape user input for safe HTML rendering
+    safe_name = html_escape.escape(msg.name)
+    safe_email = html_escape.escape(msg.email)
+    safe_subject = html_escape.escape(msg.subject)
+    safe_message = html_escape.escape(msg.message).replace("\n", "<br>")
+
+    # Save to file
     messages_dir = DATA_DIR / "messages"
     messages_dir.mkdir(parents=True, exist_ok=True)
 
@@ -149,13 +193,13 @@ async def api_contact(msg: ContactMessage):
         from backend.email_service import _send_email, NOTIFY_EMAIL
         _send_email(
             NOTIFY_EMAIL,
-            f"Contact form: {msg.subject or 'No subject'} - from {msg.name}",
+            f"Contact form: {safe_subject or 'No subject'} - from {safe_name}",
             f"""<div style="font-family: Arial, sans-serif; max-width: 600px;">
                 <h2 style="color: #1a3a5c;">New Contact Message</h2>
-                <p><strong>From:</strong> {msg.name} &lt;{msg.email}&gt;</p>
-                <p><strong>Subject:</strong> {msg.subject or 'N/A'}</p>
+                <p><strong>From:</strong> {safe_name} &lt;{safe_email}&gt;</p>
+                <p><strong>Subject:</strong> {safe_subject or 'N/A'}</p>
                 <hr style="border-top: 1px solid #ddd;">
-                <p>{msg.message}</p>
+                <p>{safe_message}</p>
             </div>"""
         )
     except Exception as e:
@@ -166,8 +210,12 @@ async def api_contact(msg: ContactMessage):
 
 # --- API: Create Order & Mollie Payment ---
 @app.post("/api/order")
-async def api_order(order: OrderRequest):
+async def api_order(order: OrderRequest, request: Request):
     """Create order and redirect to Mollie payment."""
+    client_ip = request.client.host if request.client else "unknown"
+    if not _check_rate_limit(client_ip, "order", RATE_LIMIT_MAX_ORDER):
+        raise HTTPException(status_code=429, detail="Too many orders. Please try again later.")
+
     if order.quantity < 1 or order.quantity > 99:
         raise HTTPException(status_code=400, detail="Invalid quantity")
 
