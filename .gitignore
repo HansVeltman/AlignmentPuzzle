@@ -5,6 +5,8 @@ __pycache__/
 *.pyc
 data/orders/
 data/messages/
+data/invoices/
+Orders/
 *.xlsx
 *.docx
 ~$*

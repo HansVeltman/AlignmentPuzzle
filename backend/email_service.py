@@ -30,7 +30,10 @@ VAT_RATE = 0.09
 def _send_email(to_email: str, subject: str, html_body: str, attachments=None):
     """Send an email via SMTP with optional attachments."""
     if not SMTP_PASSWORD:
-        logger.warning("SMTP_PASSWORD not set - skipping email")
+        logger.error(
+            "SMTP_PASSWORD not set - CANNOT SEND EMAIL. "
+            "Set the SMTP_PASSWORD environment variable (see render.yaml)."
+        )
         return False
 
     msg = MIMEMultipart("mixed")
@@ -76,21 +79,35 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     order_date = datetime.fromisoformat(order_data["created_at"]).strftime("%d %B %Y")
 
     from pathlib import Path
-    header_path = Path(__file__).resolve().parent.parent / "static" / "images" / "InvoiceHeader.jpg"
+    header_path = Path(__file__).resolve().parent.parent / "static" / "images" / "logo_02.jpg"
 
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=20)
 
-    # Header image full width (A4 = 210mm)
-    header_bottom = 10
+    # Header logo, placed at a natural letterhead size (top-left).
+    # NOTE: we deliberately do NOT stretch the logo across the full page width.
+    # The source logo is low-resolution; blowing it up to 210mm magnifies it
+    # and makes it look blurry/pixelated. Placing it small keeps it crisp.
+    # We also trim any surrounding white border so the logo sits neatly.
+    header_bottom = 12
     if header_path.exists():
-        from PIL import Image as PILImage
-        with PILImage.open(header_path) as img:
-            img_w, img_h = img.size
-            header_height_mm = (img_h / img_w) * 210
-        pdf.image(str(header_path), x=0, y=0, w=210)
-        header_bottom = header_height_mm + 5
+        from PIL import Image as PILImage, ImageChops
+        logo_img = PILImage.open(header_path).convert("RGB")
+        bg = PILImage.new("RGB", logo_img.size, (255, 255, 255))
+        bbox = ImageChops.difference(logo_img, bg).getbbox()
+        if bbox:
+            logo_img = logo_img.crop(bbox)
+        img_w, img_h = logo_img.size
+
+        logo_height_mm = 13          # letterhead-sized logo
+        logo_width_mm = (img_w / img_h) * logo_height_mm
+        if logo_width_mm > 120:      # safety cap so a wide logo never overflows
+            logo_width_mm = 120
+            logo_height_mm = (img_h / img_w) * logo_width_mm
+
+        pdf.image(logo_img, x=10, y=12, w=logo_width_mm, h=logo_height_mm)
+        header_bottom = 12 + logo_height_mm + 6
 
     # Sender address below header
     pdf.set_y(header_bottom)
@@ -243,7 +260,7 @@ def send_order_notification(order_data: dict):
 
     pdf_bytes = _generate_invoice_pdf(order_data)
     filename = f"Invoice-{order_data['order_id']}.pdf"
-    _send_email(NOTIFY_EMAIL, subject, html, attachments=[(filename, pdf_bytes)])
+    return _send_email(NOTIFY_EMAIL, subject, html, attachments=[(filename, pdf_bytes)])
 
 
 def send_order_confirmation(order_data: dict):
@@ -306,4 +323,4 @@ def send_order_confirmation(order_data: dict):
 
     pdf_bytes = _generate_invoice_pdf(order_data)
     filename = f"Invoice-{order_data['order_id']}.pdf"
-    _send_email(order_data['email'], subject, html, attachments=[(filename, pdf_bytes)])
+    return _send_email(order_data['email'], subject, html, attachments=[(filename, pdf_bytes)])

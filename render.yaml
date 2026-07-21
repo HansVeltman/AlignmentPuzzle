@@ -9,6 +9,15 @@ services:
         sync: false
       - key: CONTACT_EMAIL
         value: info@alignmentpuzzle.com
+      - key: SMTP_HOST
+        value: smtp.hostnet.nl
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        value: info@alignmentpuzzle.com
+      # Secret: set the actual mailbox password in the Render dashboard, not here.
+      - key: SMTP_PASSWORD
+        sync: false
       - key: BASE_URL
         value: https://www.alignmentpuzzle.com
       - key: PYTHON_VERSION
