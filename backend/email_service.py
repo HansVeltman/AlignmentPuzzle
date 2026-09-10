@@ -15,6 +15,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from datetime import datetime
+from pathlib import Path
 from fpdf import FPDF
 
 logger = logging.getLogger("alignmentpuzzle")
@@ -27,6 +28,13 @@ FROM_EMAIL = "info@alignmentpuzzle.com"
 NOTIFY_EMAIL = os.getenv("CONTACT_EMAIL", "info@alignmentpuzzle.com")
 
 VAT_RATE = 0.09
+
+# The invoice uses Open Sans (bundled, free OFL licence) instead of the PDF
+# built-in Helvetica. Helvetica only knows Western European letters, so a
+# customer name or address with e.g. ł, ř, ő, ’, – or € made the invoice crash.
+# Open Sans also covers Greek and Cyrillic (we ship to GR, CY and BG).
+FONTS_DIR = Path(__file__).resolve().parent / "fonts"
+INVOICE_FONT = "OpenSans"
 
 
 def _send_email(to_email: str, subject: str, html_body: str, attachments=None):
@@ -143,10 +151,11 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     unit_excl = round(unit_price_incl / (1 + VAT_RATE), 2)
     order_date = datetime.fromisoformat(order_data["created_at"]).strftime("%d %B %Y")
 
-    from pathlib import Path
     header_path = Path(__file__).resolve().parent.parent / "static" / "images" / "logo_02.jpg"
 
     pdf = FPDF()
+    pdf.add_font(INVOICE_FONT, "", str(FONTS_DIR / "OpenSans-Regular.ttf"))
+    pdf.add_font(INVOICE_FONT, "B", str(FONTS_DIR / "OpenSans-Bold.ttf"))
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=20)
 
@@ -176,7 +185,7 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
 
     # Sender address below header
     pdf.set_y(header_bottom)
-    pdf.set_font("Helvetica", "", 8)
+    pdf.set_font(INVOICE_FONT, "", 8)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(0, 4, "The Alignment Puzzle | Posthoornstraat 11 | 3011 WD Rotterdam | Holland",
              new_x="LMARGIN", new_y="NEXT")
@@ -185,12 +194,12 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
 
     # Invoice title
     pdf.ln(2)
-    pdf.set_font("Helvetica", "B", 16)
+    pdf.set_font(INVOICE_FONT, "B", 16)
     pdf.cell(0, 10, "INVOICE", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
 
     # Invoice details
-    pdf.set_font("Helvetica", "", 10)
+    pdf.set_font(INVOICE_FONT, "", 10)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(40, 6, "Invoice number:")
     pdf.set_text_color(0, 0, 0)
@@ -208,10 +217,10 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     pdf.ln(8)
 
     # Ship to
-    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_font(INVOICE_FONT, "B", 11)
     pdf.set_text_color(26, 58, 92)
     pdf.cell(0, 8, "Ship to:", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("Helvetica", "", 10)
+    pdf.set_font(INVOICE_FONT, "", 10)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(0, 6, order_data["name"], new_x="LMARGIN", new_y="NEXT")
     pdf.cell(0, 6, order_data["address"], new_x="LMARGIN", new_y="NEXT")
@@ -226,7 +235,7 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     pdf.ln(4)
 
     # Table header
-    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_font(INVOICE_FONT, "B", 10)
     pdf.set_fill_color(245, 247, 250)
     col_desc = 90
     col_qty = 25
@@ -238,13 +247,13 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     pdf.cell(col_amount, 8, "Amount", border=0, align="R", fill=True, new_x="LMARGIN", new_y="NEXT")
 
     # Table row
-    pdf.set_font("Helvetica", "", 10)
+    pdf.set_font(INVOICE_FONT, "", 10)
     pdf.cell(col_desc, 7, "The Alignment Puzzle")
     pdf.cell(col_qty, 7, str(quantity), align="C")
     pdf.cell(col_unit, 7, f"EUR {unit_excl:.2f}", align="R")
     pdf.cell(col_amount, 7, f"EUR {total_excl:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
 
-    pdf.set_font("Helvetica", "", 8)
+    pdf.set_font(INVOICE_FONT, "", 8)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(col_desc, 5, "Business Engineering for Aligned Organizations (2nd ed.)", new_x="LMARGIN", new_y="NEXT")
     pdf.set_text_color(0, 0, 0)
@@ -257,7 +266,7 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     pdf.ln(4)
 
     # Totals
-    pdf.set_font("Helvetica", "", 10)
+    pdf.set_font(INVOICE_FONT, "", 10)
     x_label = 120
     x_value = 165
 
@@ -279,14 +288,14 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     pdf.line(x_label, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(4)
 
-    pdf.set_font("Helvetica", "B", 13)
+    pdf.set_font(INVOICE_FONT, "B", 13)
     pdf.set_x(x_label)
     pdf.cell(45, 10, "Total:")
     pdf.cell(35, 10, f"EUR {total_incl:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
 
     # Footer
     pdf.ln(20)
-    pdf.set_font("Helvetica", "", 9)
+    pdf.set_font(INVOICE_FONT, "", 9)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(0, 5, "The Alignment Puzzle | info@alignmentpuzzle.com | www.alignmentpuzzle.com", align="C", new_x="LMARGIN", new_y="NEXT")
     pdf.cell(0, 5, "Thank you for your order!", align="C", new_x="LMARGIN", new_y="NEXT")
@@ -294,12 +303,31 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     return pdf.output()
 
 
-def send_order_notification(order_data: dict):
-    """Send order notification to the shop owner with PDF invoice."""
+def _invoice_attachments(order_data: dict, invoice_pdf):
+    if invoice_pdf is None:
+        return None
+    return [(f"Invoice-{order_data['order_id']}.pdf", invoice_pdf)]
+
+
+def send_order_notification(order_data: dict, invoice_pdf):
+    """Send order notification to the shop owner with the PDF invoice.
+
+    invoice_pdf is None when the invoice could not be generated; the owner is
+    then still notified, with a warning to send the invoice manually.
+    """
     subject = f"New order {order_data['order_id']} - {order_data['quantity']}x The Alignment Puzzle"
+    warning = ""
+    if invoice_pdf is None:
+        subject += " - FACTUUR ONTBREEKT"
+        warning = """
+        <div style="background: #c62828; color: #fff; padding: 12px 16px; border-radius: 6px;">
+            <strong>Let op: de factuur kon niet worden gemaakt, stuur hem handmatig.</strong><br>
+            De klant heeft de bevestiging gekregen met de melding dat de factuur apart volgt.
+        </div>"""
 
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        {warning}
         <h2 style="color: #1a3a5c;">New Order Received</h2>
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Order ID</td>
@@ -319,17 +347,20 @@ def send_order_notification(order_data: dict):
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Paid at</td>
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">{_safe(order_data.get('paid_at', 'N/A'))}</td></tr>
         </table>
-        <p style="color: #666;">The invoice PDF is attached. Please ship the order to the address above.</p>
+        <p style="color: #666;">{"The invoice PDF is attached. " if invoice_pdf is not None else ""}Please ship the order to the address above.</p>
     </div>
     """
 
-    pdf_bytes = _generate_invoice_pdf(order_data)
-    filename = f"Invoice-{order_data['order_id']}.pdf"
-    return _send_email(NOTIFY_EMAIL, subject, html, attachments=[(filename, pdf_bytes)])
+    return _send_email(NOTIFY_EMAIL, subject, html,
+                       attachments=_invoice_attachments(order_data, invoice_pdf))
 
 
-def send_order_confirmation(order_data: dict):
-    """Send order confirmation with invoice PDF to the customer."""
+def send_order_confirmation(order_data: dict, invoice_pdf):
+    """Send order confirmation with the PDF invoice to the customer.
+
+    invoice_pdf is None when the invoice could not be generated; the customer
+    then still gets the confirmation, saying the invoice will follow separately.
+    """
     quantity = order_data['quantity']
     total_incl = order_data['total']
     total_excl = round(total_incl / (1 + VAT_RATE), 2)
@@ -348,7 +379,7 @@ def send_order_confirmation(order_data: dict):
 
         <div style="padding: 32px 24px;">
             <p>Dear {_safe(order_data['name'])},</p>
-            <p>Thank you for your order! Your payment has been received. Your invoice is attached as a PDF.</p>
+            <p>Thank you for your order! Your payment has been received. {"Your invoice is attached as a PDF." if invoice_pdf is not None else "Your invoice will follow separately."}</p>
 
             <div style="background: #f5f7fa; border-radius: 8px; padding: 24px; margin: 24px 0;">
                 <h2 style="color: #1a3a5c; margin-top: 0; font-size: 18px;">Order Summary</h2>
@@ -386,6 +417,5 @@ def send_order_confirmation(order_data: dict):
     </div>
     """
 
-    pdf_bytes = _generate_invoice_pdf(order_data)
-    filename = f"Invoice-{order_data['order_id']}.pdf"
-    return _send_email(order_data['email'], subject, html, attachments=[(filename, pdf_bytes)])
+    return _send_email(order_data['email'], subject, html,
+                       attachments=_invoice_attachments(order_data, invoice_pdf))

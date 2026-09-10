@@ -355,23 +355,36 @@ async def mollie_webhook(request: Request):
                         _generate_invoice_pdf,
                     )
 
-                    # Always keep a permanent invoice copy on disk, independent of
-                    # whether the emails succeed. This is our safety net.
+                    # Make the invoice once. If that fails (pdf_bytes stays None) the
+                    # emails still go out, without attachment and with a warning.
+                    pdf_bytes = None
                     try:
                         pdf_bytes = _generate_invoice_pdf(order_data)
-                        (INVOICES_DIR / f"Invoice-{order_id}.pdf").write_bytes(pdf_bytes)
                     except Exception as pdf_err:
-                        logger.error(f"Could not save invoice PDF for {order_id}: {pdf_err}", exc_info=True)
+                        logger.error(f"INVOICE FAILED for paid order {order_id}: {pdf_err}", exc_info=True)
 
-                    # Send owner notification + customer confirmation, and record
-                    # whether each actually went out so a failure is never silent.
+                    # Always keep a permanent invoice copy on disk, independent of
+                    # whether the emails succeed. This is our safety net.
+                    if pdf_bytes is not None:
+                        try:
+                            (INVOICES_DIR / f"Invoice-{order_id}.pdf").write_bytes(pdf_bytes)
+                        except Exception as save_err:
+                            logger.error(f"Could not save invoice PDF for {order_id}: {save_err}", exc_info=True)
+
+                    # Send owner notification + customer confirmation independently
+                    # (one failing must not stop the other), and record whether each
+                    # actually went out so a failure is never silent.
                     owner_ok = customer_ok = False
                     try:
-                        owner_ok = send_order_notification(order_data)
-                        customer_ok = send_order_confirmation(order_data)
+                        owner_ok = send_order_notification(order_data, pdf_bytes)
                     except Exception as email_err:
-                        logger.error(f"Email error for {order_id}: {email_err}", exc_info=True)
+                        logger.error(f"Owner email error for {order_id}: {email_err}", exc_info=True)
+                    try:
+                        customer_ok = send_order_confirmation(order_data, pdf_bytes)
+                    except Exception as email_err:
+                        logger.error(f"Customer email error for {order_id}: {email_err}", exc_info=True)
 
+                    order_data["invoice_created"] = pdf_bytes is not None
                     order_data["owner_email_sent"] = bool(owner_ok)
                     order_data["customer_email_sent"] = bool(customer_ok)
                     order_file.write_text(json.dumps(order_data, indent=2), encoding="utf-8")
@@ -427,7 +440,8 @@ async def export_orders(secret: str = ""):
     output = io.StringIO()
     fields = ["order_id", "name", "email", "address", "postal_code", "city",
               "country", "quantity", "total_excl_vat", "vat_amount", "total_incl_vat",
-              "status", "created_at", "paid_at", "owner_email_sent", "customer_email_sent"]
+              "status", "created_at", "paid_at", "invoice_created", "owner_email_sent",
+              "customer_email_sent"]
     writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
     writer.writeheader()
     for order in orders:

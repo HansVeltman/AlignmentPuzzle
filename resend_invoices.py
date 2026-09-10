@@ -101,12 +101,18 @@ def main():
         elif mode == "test":
             original = order["email"]
             order["email"] = NOTIFY_EMAIL          # send the copy to yourself
-            send_order_confirmation(order)
+            ok = send_order_confirmation(order, pdf_bytes)
             order["email"] = original
-            print(f"    Email    : TEST copy sent to {NOTIFY_EMAIL}")
+            if ok:
+                print(f"    Email    : TEST copy sent to {NOTIFY_EMAIL}")
+            else:
+                print(f"    Email    : FAILED - test copy NOT sent (see the error above)")
         elif mode == "send":
-            send_order_confirmation(order)
-            print(f"    Email    : confirmation + invoice sent to {order['email']}")
+            ok = send_order_confirmation(order, pdf_bytes)
+            if ok:
+                print(f"    Email    : confirmation + invoice sent to {order['email']}")
+            else:
+                print(f"    Email    : FAILED - NOT sent to {order['email']} (see the error above)")
 
     print("\nDone.")
     if mode == "preview":
