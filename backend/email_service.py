@@ -6,8 +6,10 @@ with PDF invoice attachment.
 
 import os
 import io
+import time
 import logging
 import smtplib
+import threading
 import html as html_escape
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -60,7 +62,70 @@ def _send_email(to_email: str, subject: str, html_body: str, attachments=None):
         return True
     except Exception as e:
         logger.error(f"Failed to send email to {to_email}: {e}")
+        request_mail_check()  # re-test the mail server now, so the banner appears quickly
         return False
+
+
+# --- Mail server monitor ---
+# A background thread regularly tests that we can LOG IN to the SMTP server
+# (no email is sent). While that fails, the website shows a red warning banner
+# (see serve_template in app.py), so a broken mail setup such as an expired
+# password is visible on the site instead of failing silently.
+MAIL_CHECK_INTERVAL_OK = 30 * 60     # re-test every 30 minutes while mail works
+MAIL_CHECK_INTERVAL_ERROR = 5 * 60   # re-test every 5 minutes while it is broken
+MAIL_CHECK_RETRY_DELAY = 30          # a failed test is repeated once before we call it broken
+
+_mail_ok = True
+_mail_check_now = threading.Event()
+
+
+def _smtp_login_works() -> bool:
+    """Try to log in to the SMTP server without sending anything."""
+    if not SMTP_PASSWORD:
+        logger.error("Mail server check: SMTP_PASSWORD not set")
+        return False
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+        return True
+    except Exception as e:
+        logger.error(f"Mail server check: login failed: {e}")
+        return False
+
+
+def _mail_monitor_loop():
+    global _mail_ok
+    while True:
+        ok = _smtp_login_works()
+        if not ok:
+            # Test once more, so a single network hiccup doesn't show the banner.
+            time.sleep(MAIL_CHECK_RETRY_DELAY)
+            ok = _smtp_login_works()
+
+        if ok and not _mail_ok:
+            logger.info("Mail server check: OK again - warning banner removed")
+        elif not ok and _mail_ok:
+            logger.error("MAIL SERVER DOWN - warning banner is now shown on the website")
+        _mail_ok = ok
+
+        _mail_check_now.wait(MAIL_CHECK_INTERVAL_OK if ok else MAIL_CHECK_INTERVAL_ERROR)
+        _mail_check_now.clear()
+
+
+def start_mail_monitor():
+    """Start the background mail server check (call once at app startup)."""
+    threading.Thread(target=_mail_monitor_loop, name="mail-monitor", daemon=True).start()
+
+
+def mail_server_ok() -> bool:
+    """Result of the most recent mail server check."""
+    return _mail_ok
+
+
+def request_mail_check():
+    """Ask the monitor to re-test the mail server right away."""
+    _mail_check_now.set()
 
 
 def _safe(value) -> str:

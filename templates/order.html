@@ -194,10 +194,13 @@
                         Buy eBook
                         <span class="btn-label">via Amazon Kindle</span>
                     </a>
-                    <button type="button" class="btn btn-outline" id="btnOrderPrinted" onclick="document.getElementById('order-form-section').style.display='block'; this.style.display='none';">
-                        Order Printed Book (Eur 45,-)
-                        <span class="btn-label">direct from the authors (EU/UK only)</span>
-                    </button>
+                    <div>
+                        <button type="button" class="btn btn-outline" id="btnOrderPrinted" onclick="document.getElementById('order-form-section').style.display='block'; this.style.display='none';">
+                            Order Printed Book (Eur 45,-)
+                            <span class="btn-label">direct from the authors (EU/UK only)</span>
+                        </button>
+                        <!-- MAIL_ERROR_BANNER: replaced by a red warning while the mail server is down (see backend/app.py) -->
+                    </div>
                 </div>
 
                 <!-- Order form for English printed edition (hidden by default) -->

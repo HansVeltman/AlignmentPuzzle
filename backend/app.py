@@ -9,6 +9,7 @@ import logging
 import html as html_escape
 import time
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 
@@ -29,6 +30,17 @@ INVOICES_DIR = DATA_DIR / "invoices"
 MOLLIE_API_KEY = os.getenv("MOLLIE_API_KEY", "")
 CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "info@alignmentpuzzle.com")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+
+# Shown on the order page, below the "Order Printed Book" button, while the
+# mail server check fails. It replaces the MAIL_ERROR_BANNER marker comment in
+# order.html. The address is a separate mailbox, so it keeps working if info@ breaks.
+MAIL_ERROR_MARKER = "<!-- MAIL_ERROR_BANNER"
+MAIL_ERROR_BANNER = (
+    '<div class="mail-error-banner" role="alert">'
+    '<strong>Mailserver error!</strong> Apologies. Please mail '
+    '<a href="mailto:hans@alignmentpuzzel.nl">hans@alignmentpuzzel.nl</a>.'
+    '</div>'
+)
 
 BOOK_PRICE = 45.00
 INVOICE_COUNTER_FILE = DATA_DIR / "invoice_counter.json"
@@ -79,7 +91,14 @@ def _check_rate_limit(client_ip: str, action: str, max_requests: int) -> bool:
 
 
 # --- App ---
-app = FastAPI(title="The Alignment Puzzle", docs_url=None, redoc_url=None)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from backend.email_service import start_mail_monitor
+    start_mail_monitor()
+    yield
+
+
+app = FastAPI(title="The Alignment Puzzle", docs_url=None, redoc_url=None, lifespan=lifespan)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -90,7 +109,13 @@ def serve_template(name: str) -> HTMLResponse:
     template_path = TEMPLATES_DIR / name
     if not template_path.exists():
         raise HTTPException(status_code=404, detail="Page not found")
-    return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
+    content = template_path.read_text(encoding="utf-8")
+
+    from backend.email_service import mail_server_ok
+    if MAIL_ERROR_MARKER in content and not mail_server_ok():
+        content = content.replace(MAIL_ERROR_MARKER, MAIL_ERROR_BANNER + "\n" + MAIL_ERROR_MARKER, 1)
+
+    return HTMLResponse(content=content)
 
 
 # --- Page Routes ---

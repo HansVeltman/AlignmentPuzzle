@@ -721,6 +721,36 @@ a:hover {
     border: 1px solid #f5c6cb;
 }
 
+/* --- Mail server error banner (order page, inserted by the backend while mail is down) ---
+   It sits directly under the "Order Printed Book" button and is attached to it,
+   so it clearly belongs to that button only, not to the other editions. */
+.mail-error-banner {
+    background: #c62828;
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 0 0 5px 5px;
+    text-align: center;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.btn:has(+ .mail-error-banner) {
+    border-color: #c62828;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Once the button is clicked it is hidden and the banner stands on its own. */
+.btn[style*="none"] + .mail-error-banner {
+    border-radius: 5px;
+}
+
+.mail-error-banner a {
+    color: #fff;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
 /* --- Responsive --- */
 @media (max-width: 968px) {
     .hero-inner {
