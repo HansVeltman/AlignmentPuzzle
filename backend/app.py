@@ -41,7 +41,7 @@ BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 # Public address of the site, used in the language links for search engines.
 SITE_URL = "https://www.alignmentpuzzle.com"
 
-BOOK_PRICE = 45.00
+BOOK_PRICE = 1.00  # TEMPORARY: lowered for a live test order. REVERT to 45.00.
 INVOICE_COUNTER_FILE = DATA_DIR / "invoice_counter.json"
 INVOICE_PREFIX = "AP"
 INVOICE_START = 9876
