@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Contact - De AlignmentPuzzel{% endblock %}
+{% block description %}Neem contact op met de auteurs van De AlignmentPuzzel. Vragen over het boek, trainingen of advies? We horen graag van je.{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-header">
+    <h1>Contact</h1>
+    <p>Vragen of feedback? We horen graag van je.</p>
+</section>
+
+<!-- Contact Form -->
+<section class="section">
+    <div class="container">
+        <div style="display: flex; gap: 60px; flex-wrap: wrap;">
+            <div class="contact-form" style="flex: 1; min-width: 300px;">
+                <div id="formMessage"></div>
+                <form id="contactForm" action="/api/contact" method="POST">
+                    <input type="hidden" name="lang" value="{{ lang }}">
+                    <div class="form-group">
+                        <label for="name">Naam *</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">E-mail *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject">Onderwerp</label>
+                        <input type="text" id="subject" name="subject">
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Bericht *</label>
+                        <textarea id="message" name="message" required></textarea>
+                    </div>
+                    <!-- Honeypot - hidden from humans, bots will fill it in -->
+                    <div style="position: absolute; left: -9999px;" aria-hidden="true">
+                        <label for="website">Website</label>
+                        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+                    </div>
+                    <!-- Human verification -->
+                    <div class="form-group">
+                        <label for="human_answer">Controlevraag: hoeveel is 3 + 4? *</label>
+                        <input type="text" id="human_answer" name="human_answer" required placeholder="Vul het antwoord in" autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Verstuur bericht</button>
+                </form>
+            </div>
+            <div style="flex: 0 0 300px;">
+                <h3 style="color: var(--color-primary); margin-bottom: 16px;">Andere manieren om ons te bereiken</h3>
+                <p style="margin-bottom: 16px; color: var(--color-text-light);">
+                    Voor vragen over het boek, trainingen of advies kun je het contactformulier gebruiken of rechtstreeks contact met ons opnemen.
+                </p>
+                <img src="/static/images/AfbeeldiongEmailEnWebsite.jpg" alt="Contactgegevens" style="max-width: 100%; border-radius: 4px;">
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

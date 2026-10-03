@@ -117,6 +117,16 @@ a:hover {
     border: 1px solid var(--color-border);
     border-radius: 4px;
     font-size: 13px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.lang-flag {
+    height: 14px;
+    width: auto;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.12);
 }
 
 /* Hamburger menu */
@@ -369,6 +379,15 @@ a:hover {
     color: var(--color-accent);
     font-family: var(--font-heading);
     margin-bottom: 12px;
+}
+
+/* Optional label next to the number, e.g. "1 STUREN" */
+.principle-label {
+    font-size: 0.45em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-left: 10px;
+    vertical-align: middle;
 }
 
 .principle-card h3 {
@@ -831,6 +850,7 @@ a:hover {
 
     .lang-switch {
         margin-left: 0;
+        justify-content: center;
     }
 
     .hero-content h1 {
@@ -847,5 +867,178 @@ a:hover {
 
     .authors-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* --- Movies page --- */
+.movie-player {
+    max-width: 800px;
+    margin: 0 auto 48px;
+}
+.movie-player .video-wrapper {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+}
+.movie-player .video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+.movie-player-title {
+    text-align: center;
+    color: var(--color-primary);
+    margin-top: 16px;
+    font-size: 1.2em;
+}
+.movie-list-heading {
+    color: var(--color-primary);
+    margin-bottom: 24px;
+    font-size: 1.1em;
+}
+.movie-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 24px;
+}
+.movie-thumb {
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.movie-thumb:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+.movie-thumb.active {
+    outline: 3px solid var(--color-accent);
+}
+.movie-thumb img {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    display: block;
+}
+.movie-thumb h3 {
+    padding: 12px 14px;
+    font-size: 0.85em;
+    color: var(--color-primary);
+    margin: 0;
+    line-height: 1.4;
+}
+@media (max-width: 768px) {
+    .movie-list {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 16px;
+    }
+}
+
+/* --- Order page --- */
+.two-col-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    margin-top: 40px;
+}
+.lang-column {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.lang-column-top {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+    width: 100%;
+}
+.lang-column-top .book-thumb {
+    flex-shrink: 0;
+    width: 90px;
+    height: 120px;
+}
+.lang-column-top .book-thumb img {
+    border-radius: 6px;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.lang-column-top .lang-info {
+    display: flex;
+    flex-direction: column;
+}
+.lang-column-top .lang-info h2 {
+    color: var(--color-primary);
+    margin: 0 0 8px;
+    font-size: 1.5em;
+}
+.lang-flags {
+    display: flex;
+    gap: 8px;
+}
+.lang-flags img {
+    height: 28px;
+    border-radius: 3px;
+}
+.lang-column .btn-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.lang-column .btn-group .btn {
+    text-align: center;
+    width: 100%;
+    display: block;
+    font-size: 1em;
+    padding: 14px 20px;
+    font-family: inherit;
+    line-height: inherit;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+.btn-label {
+    display: block;
+    font-size: 0.75em;
+    font-weight: 400;
+    opacity: 0.85;
+    margin-top: 2px;
+}
+.order-form-section {
+    background: var(--color-bg-light);
+    border-radius: 12px;
+    padding: 32px;
+    margin-top: 24px;
+    width: 100%;
+}
+.order-form-section h3 {
+    color: var(--color-primary);
+    margin-bottom: 8px;
+}
+.order-form-section .subtitle {
+    color: var(--color-text-light);
+    margin-bottom: 20px;
+    font-size: 0.95em;
+}
+@media (max-width: 768px) {
+    .two-col-layout {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+    .lang-column-top .book-thumb {
+        width: 70px;
     }
 }

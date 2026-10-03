@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Video's - De AlignmentPuzzel{% endblock %}
+{% block description %}Bekijk korte video's van de auteurs van De AlignmentPuzzel over alignment, supply chain-strategie en organisatieontwerp.{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-header">
+    <h1>Video's</h1>
+    <p>Korte video's over de belangrijkste ideeën uit De AlignmentPuzzel</p>
+</section>
+
+<!-- Video Player + Thumbnail List -->
+<section class="section">
+    <div class="container">
+
+        <!-- Main Player -->
+        <div class="movie-player">
+            <div class="video-wrapper" id="movieWrapper">
+                <div id="moviePlaceholder" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--color-bg-dark); color: #fff; font-size: 1.2em; text-align: center; padding: 20px;">
+                    <img src="/static/images/Camera.jpg" alt="" style="height: 80px; margin-bottom: 31px;">
+                    <div>Kies een video uit de lijst hieronder</div>
+                    <img src="/static/images/ArrowDown.jpg" alt="" style="height: 40px; margin-top: 36px;">
+                </div>
+            </div>
+            <h2 class="movie-player-title" id="movieTitle"></h2>
+        </div>
+
+        <!-- Thumbnail Grid -->
+        <h3 class="movie-list-heading">Kies een video</h3>
+        <div class="movie-list">
+            {#- The videos come from content/nl/movies.json #}
+            {%- for m in movies %}
+            <div class="movie-thumb" data-video="{{ m.id }}" data-title="{{ m.title }}" onclick="playMovie(this)">
+                <img src="https://img.youtube.com/vi/{{ m.id }}/mqdefault.jpg" alt="{{ m.title }}">
+                <h3>{{ m.title }}</h3>
+            </div>
+            {%- endfor %}
+        </div>
+
+    </div>
+</section>
+{% endblock %}

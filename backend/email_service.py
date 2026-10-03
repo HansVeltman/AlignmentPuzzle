@@ -18,6 +18,8 @@ from datetime import datetime
 from pathlib import Path
 from fpdf import FPDF
 
+from backend.i18n import normalize_lang
+
 logger = logging.getLogger("alignmentpuzzle")
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.hostnet.nl")
@@ -35,6 +37,90 @@ VAT_RATE = 0.09
 # Open Sans also covers Greek and Cyrillic (we ship to GR, CY and BG).
 FONTS_DIR = Path(__file__).resolve().parent / "fonts"
 INVOICE_FONT = "OpenSans"
+
+# Texts of the invoice and the customer confirmation email, per language.
+# The language is the one the customer ordered in (order_data["lang"]); orders
+# from before the site was multilingual have no "lang" and get English.
+TEXT = {
+    "en": {
+        "invoice_title": "INVOICE",
+        "invoice_number": "Invoice number:",
+        "date": "Date:",
+        "payment_status": "Payment status:",
+        "paid": "Paid",
+        "ship_to": "Ship to:",
+        "description": "Description",
+        "qty": "Qty",
+        "unit_price": "Unit price",
+        "amount": "Amount",
+        "edition": "Business Engineering for Aligned Organizations (2nd ed.)",
+        "subtotal": "Subtotal (excl. VAT):",
+        "vat": "VAT (9%):",
+        "shipping": "Shipping:",
+        "included": "Included",
+        "total": "Total:",
+        "thanks": "Thank you for your order!",
+        "invoice_file": "Invoice",
+        "subject": "Order Confirmation",
+        "dear": "Dear",
+        "paid_text": "Thank you for your order! Your payment has been received.",
+        "invoice_attached": "Your invoice is attached as a PDF.",
+        "invoice_follows": "Your invoice will follow separately.",
+        "summary": "Order Summary",
+        "order_number": "Order number:",
+        "quantity": "Quantity:",
+        "shipped_to": "Your book will be shipped to:",
+        "dispatch": "You will receive a separate email when your order has been dispatched.",
+        "regards": "Kind regards,",
+        "team": "The Alignment Puzzle Team",
+        "months": ["January", "February", "March", "April", "May", "June", "July",
+                   "August", "September", "October", "November", "December"],
+    },
+    "nl": {
+        "invoice_title": "FACTUUR",
+        "invoice_number": "Factuurnummer:",
+        "date": "Datum:",
+        "payment_status": "Betaalstatus:",
+        "paid": "Betaald",
+        "ship_to": "Verzendadres:",
+        "description": "Omschrijving",
+        "qty": "Aantal",
+        "unit_price": "Prijs per stuk",
+        "amount": "Bedrag",
+        "edition": "Business Engineering for Aligned Organizations (Engelse editie, 2e druk)",
+        "subtotal": "Subtotaal (excl. btw):",
+        "vat": "Btw (9%):",
+        "shipping": "Verzendkosten:",
+        "included": "Inbegrepen",
+        "total": "Totaal:",
+        "thanks": "Bedankt voor je bestelling!",
+        "invoice_file": "Factuur",
+        "subject": "Orderbevestiging",
+        "dear": "Beste",
+        "paid_text": "Bedankt voor je bestelling! Je betaling is ontvangen.",
+        "invoice_attached": "Je factuur zit als pdf in de bijlage.",
+        "invoice_follows": "Je factuur volgt apart.",
+        "summary": "Besteloverzicht",
+        "order_number": "Ordernummer:",
+        "quantity": "Aantal:",
+        "shipped_to": "Je boek wordt verzonden naar:",
+        "dispatch": "Je ontvangt een aparte e-mail zodra je bestelling is verzonden.",
+        "regards": "Met vriendelijke groet,",
+        "team": "Het Alignment Puzzle-team",
+        "months": ["januari", "februari", "maart", "april", "mei", "juni", "juli",
+                   "augustus", "september", "oktober", "november", "december"],
+    },
+}
+
+
+def _order_lang(order_data: dict) -> str:
+    return normalize_lang(order_data.get("lang"))
+
+
+def _format_date(iso_date: str, lang: str) -> str:
+    """e.g. "7 September 2026" / "7 september 2026" (not dependent on the server's locale)."""
+    d = datetime.fromisoformat(iso_date)
+    return f"{d.day:02d} {TEXT[lang]['months'][d.month - 1]} {d.year}"
 
 
 def _send_email(to_email: str, subject: str, html_body: str, attachments=None):
@@ -77,7 +163,7 @@ def _send_email(to_email: str, subject: str, html_body: str, attachments=None):
 # --- Mail server monitor ---
 # A background thread regularly tests that we can LOG IN to the SMTP server
 # (no email is sent). While that fails, the website shows a red warning banner
-# (see serve_template in app.py), so a broken mail setup such as an expired
+# (see render_page in app.py), so a broken mail setup such as an expired
 # password is visible on the site instead of failing silently.
 MAIL_CHECK_INTERVAL_OK = 30 * 60     # re-test every 30 minutes while mail works
 MAIL_CHECK_INTERVAL_ERROR = 5 * 60   # re-test every 5 minutes while it is broken
@@ -149,9 +235,12 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     total_vat = round(VAT_RATE / (1 + VAT_RATE) * total_incl, 2)
     unit_price_incl = round(total_incl / quantity, 2)
     unit_excl = round(unit_price_incl / (1 + VAT_RATE), 2)
-    order_date = datetime.fromisoformat(order_data["created_at"]).strftime("%d %B %Y")
+    lang = _order_lang(order_data)
+    t = TEXT[lang]
+    order_date = _format_date(order_data["created_at"], lang)
 
-    header_path = Path(__file__).resolve().parent.parent / "static" / "images" / "logo_02.jpg"
+    # Same logo as the English website header (the book sold here is the English edition).
+    header_path = Path(__file__).resolve().parent.parent / "static" / "images" / "en" / "logo.jpg"
 
     pdf = FPDF()
     pdf.add_font(INVOICE_FONT, "", str(FONTS_DIR / "OpenSans-Regular.ttf"))
@@ -195,31 +284,31 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     # Invoice title
     pdf.ln(2)
     pdf.set_font(INVOICE_FONT, "B", 16)
-    pdf.cell(0, 10, "INVOICE", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, t["invoice_title"], new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
 
     # Invoice details
     pdf.set_font(INVOICE_FONT, "", 10)
     pdf.set_text_color(100, 100, 100)
-    pdf.cell(40, 6, "Invoice number:")
+    pdf.cell(40, 6, t["invoice_number"])
     pdf.set_text_color(0, 0, 0)
     pdf.cell(0, 6, order_data["order_id"], new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_text_color(100, 100, 100)
-    pdf.cell(40, 6, "Date:")
+    pdf.cell(40, 6, t["date"])
     pdf.set_text_color(0, 0, 0)
     pdf.cell(0, 6, order_date, new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_text_color(100, 100, 100)
-    pdf.cell(40, 6, "Payment status:")
+    pdf.cell(40, 6, t["payment_status"])
     pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 6, "Paid", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, t["paid"], new_x="LMARGIN", new_y="NEXT")
     pdf.ln(8)
 
     # Ship to
     pdf.set_font(INVOICE_FONT, "B", 11)
     pdf.set_text_color(26, 58, 92)
-    pdf.cell(0, 8, "Ship to:", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, t["ship_to"], new_x="LMARGIN", new_y="NEXT")
     pdf.set_font(INVOICE_FONT, "", 10)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(0, 6, order_data["name"], new_x="LMARGIN", new_y="NEXT")
@@ -241,10 +330,10 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     col_qty = 25
     col_unit = 35
     col_amount = 35
-    pdf.cell(col_desc, 8, "Description", border=0, fill=True)
-    pdf.cell(col_qty, 8, "Qty", border=0, align="C", fill=True)
-    pdf.cell(col_unit, 8, "Unit price", border=0, align="R", fill=True)
-    pdf.cell(col_amount, 8, "Amount", border=0, align="R", fill=True, new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(col_desc, 8, t["description"], border=0, fill=True)
+    pdf.cell(col_qty, 8, t["qty"], border=0, align="C", fill=True)
+    pdf.cell(col_unit, 8, t["unit_price"], border=0, align="R", fill=True)
+    pdf.cell(col_amount, 8, t["amount"], border=0, align="R", fill=True, new_x="LMARGIN", new_y="NEXT")
 
     # Table row
     pdf.set_font(INVOICE_FONT, "", 10)
@@ -255,7 +344,7 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
 
     pdf.set_font(INVOICE_FONT, "", 8)
     pdf.set_text_color(100, 100, 100)
-    pdf.cell(col_desc, 5, "Business Engineering for Aligned Organizations (2nd ed.)", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(col_desc, 5, t["edition"], new_x="LMARGIN", new_y="NEXT")
     pdf.set_text_color(0, 0, 0)
     pdf.ln(6)
 
@@ -271,16 +360,16 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     x_value = 165
 
     pdf.set_x(x_label)
-    pdf.cell(45, 7, "Subtotal (excl. VAT):")
+    pdf.cell(45, 7, t["subtotal"])
     pdf.cell(35, 7, f"EUR {total_excl:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_x(x_label)
-    pdf.cell(45, 7, "VAT (9%):")
+    pdf.cell(45, 7, t["vat"])
     pdf.cell(35, 7, f"EUR {total_vat:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_x(x_label)
-    pdf.cell(45, 7, "Shipping:")
-    pdf.cell(35, 7, "Included", align="R", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(45, 7, t["shipping"])
+    pdf.cell(35, 7, t["included"], align="R", new_x="LMARGIN", new_y="NEXT")
 
     pdf.ln(2)
     pdf.set_draw_color(26, 58, 92)
@@ -290,7 +379,7 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
 
     pdf.set_font(INVOICE_FONT, "B", 13)
     pdf.set_x(x_label)
-    pdf.cell(45, 10, "Total:")
+    pdf.cell(45, 10, t["total"])
     pdf.cell(35, 10, f"EUR {total_incl:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
 
     # Footer
@@ -298,7 +387,7 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
     pdf.set_font(INVOICE_FONT, "", 9)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(0, 5, "The Alignment Puzzle | info@alignmentpuzzle.com | www.alignmentpuzzle.com", align="C", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 5, "Thank you for your order!", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 5, t["thanks"], align="C", new_x="LMARGIN", new_y="NEXT")
 
     return pdf.output()
 
@@ -306,7 +395,8 @@ def _generate_invoice_pdf(order_data: dict) -> bytes:
 def _invoice_attachments(order_data: dict, invoice_pdf):
     if invoice_pdf is None:
         return None
-    return [(f"Invoice-{order_data['order_id']}.pdf", invoice_pdf)]
+    name = TEXT[_order_lang(order_data)]["invoice_file"]
+    return [(f"{name}-{order_data['order_id']}.pdf", invoice_pdf)]
 
 
 def send_order_notification(order_data: dict, invoice_pdf):
@@ -340,6 +430,8 @@ def send_order_notification(order_data: dict, invoice_pdf):
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">{_safe(order_data['address'])}<br>
                     {_safe(order_data['postal_code'])} {_safe(order_data['city'])}<br>
                     {_safe(order_data['country'])}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Language</td>
+                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{_order_lang(order_data).upper()}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Quantity</td>
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">{order_data['quantity']}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Total</td>
@@ -367,36 +459,38 @@ def send_order_confirmation(order_data: dict, invoice_pdf):
     total_vat = round(VAT_RATE / (1 + VAT_RATE) * total_incl, 2)
     unit_price_incl = round(total_incl / quantity, 2)
     unit_excl = round(unit_price_incl / (1 + VAT_RATE), 2)
-    order_date = datetime.fromisoformat(order_data['created_at']).strftime("%d %B %Y")
+    lang = _order_lang(order_data)
+    t = TEXT[lang]
+    order_date = _format_date(order_data['created_at'], lang)
 
-    subject = f"Order Confirmation - {order_data['order_id']}"
+    subject = f"{t['subject']} - {order_data['order_id']}"
 
     html = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+    <div lang="{lang}" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <div style="background: #1a3a5c; padding: 24px; text-align: center;">
             <h1 style="color: #fff; margin: 0; font-size: 22px;">The Alignment Puzzle</h1>
         </div>
 
         <div style="padding: 32px 24px;">
-            <p>Dear {_safe(order_data['name'])},</p>
-            <p>Thank you for your order! Your payment has been received. {"Your invoice is attached as a PDF." if invoice_pdf is not None else "Your invoice will follow separately."}</p>
+            <p>{t['dear']} {_safe(order_data['name'])},</p>
+            <p>{t['paid_text']} {t['invoice_attached'] if invoice_pdf is not None else t['invoice_follows']}</p>
 
             <div style="background: #f5f7fa; border-radius: 8px; padding: 24px; margin: 24px 0;">
-                <h2 style="color: #1a3a5c; margin-top: 0; font-size: 18px;">Order Summary</h2>
+                <h2 style="color: #1a3a5c; margin-top: 0; font-size: 18px;">{t['summary']}</h2>
                 <table style="width: 100%; font-size: 14px;">
-                    <tr><td style="color: #666; padding: 4px 0;">Order number:</td>
+                    <tr><td style="color: #666; padding: 4px 0;">{t['order_number']}</td>
                         <td style="text-align: right; padding: 4px 0;">{order_data['order_id']}</td></tr>
-                    <tr><td style="color: #666; padding: 4px 0;">Date:</td>
+                    <tr><td style="color: #666; padding: 4px 0;">{t['date']}</td>
                         <td style="text-align: right; padding: 4px 0;">{order_date}</td></tr>
-                    <tr><td style="color: #666; padding: 4px 0;">Quantity:</td>
+                    <tr><td style="color: #666; padding: 4px 0;">{t['quantity']}</td>
                         <td style="text-align: right; padding: 4px 0;">{quantity}x The Alignment Puzzle</td></tr>
                     <tr style="font-weight: bold; border-top: 1px solid #ddd;">
-                        <td style="padding: 8px 0;">Total:</td>
+                        <td style="padding: 8px 0;">{t['total']}</td>
                         <td style="text-align: right; padding: 8px 0;">&euro; {total_incl:.2f}</td></tr>
                 </table>
             </div>
 
-            <p>Your book will be shipped to:</p>
+            <p>{t['shipped_to']}</p>
             <p style="background: #f5f7fa; padding: 16px; border-radius: 8px;">
                 {_safe(order_data['name'])}<br>
                 {_safe(order_data['address'])}<br>
@@ -404,10 +498,10 @@ def send_order_confirmation(order_data: dict, invoice_pdf):
                 {_safe(order_data['country'])}
             </p>
 
-            <p>You will receive a separate email when your order has been dispatched.</p>
+            <p>{t['dispatch']}</p>
 
-            <p style="margin-top: 32px;">Kind regards,<br>
-            <strong>The Alignment Puzzle Team</strong><br>
+            <p style="margin-top: 32px;">{t['regards']}<br>
+            <strong>{t['team']}</strong><br>
             Hans Veltman, Jacques Adriaansen, Peter Morren &amp; Rob Kwikkers</p>
         </div>
 

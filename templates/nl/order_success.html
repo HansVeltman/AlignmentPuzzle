@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Bestelling bevestigd - De AlignmentPuzzel{% endblock %}
+{% block description %}Bedankt voor je bestelling van The Alignment Puzzle.{% endblock %}
+{% block alternates %}
+    <meta name="robots" content="noindex">{% endblock %}
+
+{% block content %}
+<!-- Success -->
+<section class="section" style="text-align: center; min-height: 50vh; display: flex; align-items: center;">
+    <div class="container">
+        <div style="font-size: 4em; margin-bottom: 20px; color: #28a745;">&#10003;</div>
+        <h1 style="font-family: var(--font-heading); color: var(--color-primary); margin-bottom: 16px;">Bedankt voor je bestelling!</h1>
+        <p style="font-size: 1.1em; color: var(--color-text-light); max-width: 600px; margin: 0 auto 30px;">
+            Je betaling is ontvangen. Je ontvangt binnenkort een bevestigingsmail met je bestelgegevens en factuur.
+        </p>
+        <a href="{{ home_url }}" class="btn btn-primary">Terug naar de homepage</a>
+    </div>
+</section>
+{% endblock %}

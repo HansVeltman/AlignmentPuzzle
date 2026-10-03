@@ -2,6 +2,9 @@
    The Alignment Puzzle - Main JavaScript
    ============================================ */
 
+// Texts in the language of the page (set by templates/base.html from backend/i18n.py)
+var T = window.I18N || {};
+
 // --- Mobile Navigation Toggle ---
 document.addEventListener('DOMContentLoaded', function () {
     const toggle = document.querySelector('.menu-toggle');
@@ -28,11 +31,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (bio.classList.contains('collapsed')) {
                 bio.classList.remove('collapsed');
                 bio.classList.add('expanded');
-                this.textContent = 'less';
+                this.textContent = T.less;
             } else {
                 bio.classList.remove('expanded');
                 bio.classList.add('collapsed');
-                this.textContent = 'more...';
+                this.textContent = T.more;
             }
         });
     });
@@ -46,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const btn = contactForm.querySelector('button[type="submit"]');
             const originalText = btn.textContent;
 
-            btn.textContent = 'Sending...';
+            btn.textContent = T.sending;
             btn.disabled = true;
 
             const formData = new FormData(contactForm);
@@ -60,14 +63,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(function (res) { return res.json(); })
                 .then(function (result) {
                     if (result.success) {
-                        msgEl.innerHTML = '<div class="alert alert-success">Thank you! Your message has been sent successfully.</div>';
+                        msgEl.innerHTML = '<div class="alert alert-success">' + T.contact_ok + '</div>';
                         contactForm.reset();
                     } else {
-                        msgEl.innerHTML = '<div class="alert alert-error">Something went wrong. Please try again or email us directly.</div>';
+                        msgEl.innerHTML = '<div class="alert alert-error">' + T.contact_error + '</div>';
                     }
                 })
                 .catch(function () {
-                    msgEl.innerHTML = '<div class="alert alert-error">Could not send message. Please try again later.</div>';
+                    msgEl.innerHTML = '<div class="alert alert-error">' + T.contact_failed + '</div>';
                 })
                 .finally(function () {
                     btn.textContent = originalText;
@@ -85,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const btn = orderForm.querySelector('button[type="submit"]');
             const originalText = btn.textContent;
 
-            btn.textContent = 'Processing...';
+            btn.textContent = T.processing;
             btn.disabled = true;
 
             const formData = new FormData(orderForm);
@@ -102,16 +105,38 @@ document.addEventListener('DOMContentLoaded', function () {
                         // Redirect to Mollie payment page
                         window.location.href = result.checkout_url;
                     } else {
-                        msgEl.innerHTML = '<div class="alert alert-error">' + (result.detail || 'Something went wrong. Please try again.') + '</div>';
+                        msgEl.innerHTML = '<div class="alert alert-error">' + (typeof result.detail === 'string' ? result.detail : T.order_error) + '</div>';
                         btn.textContent = originalText;
                         btn.disabled = false;
                     }
                 })
                 .catch(function () {
-                    msgEl.innerHTML = '<div class="alert alert-error">Could not process order. Please try again later.</div>';
+                    msgEl.innerHTML = '<div class="alert alert-error">' + T.order_failed + '</div>';
                     btn.textContent = originalText;
                     btn.disabled = false;
                 });
         });
     }
 });
+
+// --- Movies page: play the chosen video in the big player ---
+function playMovie(el) {
+    var videoId = el.dataset.video;
+    var title = el.dataset.title;
+    var wrapper = document.getElementById('movieWrapper');
+    var placeholder = document.getElementById('moviePlaceholder');
+    if (placeholder) placeholder.remove();
+    var existing = document.getElementById('moviePlayer');
+    if (!existing) {
+        var iframe = document.createElement('iframe');
+        iframe.id = 'moviePlayer';
+        iframe.allowFullscreen = true;
+        iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;';
+        wrapper.appendChild(iframe);
+    }
+    document.getElementById('moviePlayer').src = 'https://www.youtube-nocookie.com/embed/' + videoId + '?autoplay=1';
+    document.getElementById('movieTitle').textContent = title;
+    document.querySelectorAll('.movie-thumb').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    document.querySelector('.movie-player').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}

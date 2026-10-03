@@ -12,35 +12,34 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote, urlparse, parse_qs
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pydantic import BaseModel, EmailStr
+
+from backend.i18n import (
+    LANGUAGES, DEFAULT_LANG, LANGUAGE_NAMES, LANGUAGE_FLAGS, UI, JS,
+    normalize_lang, lang_url, preferred_lang,
+)
 
 # --- Configuration ---
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
+CONTENT_DIR = BASE_DIR / "content"  # per-language lists, e.g. content/nl/movies.json
 DATA_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR / "data")))
 ORDERS_DIR = DATA_DIR / "orders"
 INVOICES_DIR = DATA_DIR / "invoices"
 MOLLIE_API_KEY = os.getenv("MOLLIE_API_KEY", "")
 CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "info@alignmentpuzzle.com")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
-
-# Shown on the order page, below the "Order Printed Book" button, while the
-# mail server check fails. It replaces the MAIL_ERROR_BANNER marker comment in
-# order.html. The address is a separate mailbox, so it keeps working if info@ breaks.
-MAIL_ERROR_MARKER = "<!-- MAIL_ERROR_BANNER"
-MAIL_ERROR_BANNER = (
-    '<div class="mail-error-banner" role="alert">'
-    '<strong>Mailserver error!</strong> Apologies. Please mail '
-    '<a href="mailto:hans@alignmentpuzzel.nl">hans@alignmentpuzzel.nl</a>.'
-    '</div>'
-)
+# Public address of the site, used in the language links for search engines.
+SITE_URL = "https://www.alignmentpuzzle.com"
 
 BOOK_PRICE = 45.00
 INVOICE_COUNTER_FILE = DATA_DIR / "invoice_counter.json"
@@ -100,65 +99,152 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="The Alignment Puzzle", docs_url=None, redoc_url=None, lifespan=lifespan)
 
+@app.get("/static/pdfs/{filename}")
+async def old_pdf_link(filename: str):
+    """PDFs used to live directly in static/pdfs/; now they are in static/pdfs/<lang>/.
+    Old links (in emails, on LinkedIn, in Google) are sent on to the new place.
+    Registered before the /static mount, otherwise the mount would answer first."""
+    for lang in LANGUAGES:
+        if (STATIC_DIR / "pdfs" / lang / filename).is_file():
+            return RedirectResponse(url=f"/static/pdfs/{lang}/{quote(filename)}", status_code=301)
+    raise HTTPException(status_code=404, detail="Not found")
+
+
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
-# --- Helper: serve template ---
-def serve_template(name: str) -> HTMLResponse:
-    template_path = TEMPLATES_DIR / name
-    if not template_path.exists():
-        raise HTTPException(status_code=404, detail="Page not found")
-    content = template_path.read_text(encoding="utf-8")
+# --- Pages ---
+# Each page exists once per language: templates/en/index.html is served at "/",
+# templates/nl/index.html at "/nl", templates/nl/movies.html at "/nl/movies", etc.
+# (page key, path, template). The key marks the active menu item.
+PAGES = [
+    ("home", "/", "index.html"),
+    ("movies", "/movies", "movies.html"),
+    ("whitepapers", "/whitepapers", "whitepapers.html"),
+    ("contact", "/contact", "contact.html"),
+    ("order", "/order", "order.html"),
+    ("order_success", "/order/success", "order_success.html"),
+]
+NAV = ["home", "movies", "whitepapers", "contact", "order"]
+PAGE_PATHS = {key: path for key, path, _ in PAGES}
+
+# Pages never auto-redirected to the visitor's language: after paying, the
+# customer must land on the thank-you page in the language they ordered in.
+NO_AUTO_REDIRECT = {"order_success"}
+
+LANG_COOKIE = "lang"
+
+jinja = Environment(
+    loader=FileSystemLoader(str(TEMPLATES_DIR)),
+    autoescape=select_autoescape(["html"]),
+)
+
+
+def youtube_id(link: str) -> str:
+    """The video id from any YouTube link (watch?v=, youtu.be/, shorts/, embed/) or a bare id."""
+    link = link.strip()
+    u = urlparse(link)
+    if u.netloc.endswith("youtu.be"):
+        return u.path.strip("/").split("/")[0]
+    if "v" in parse_qs(u.query):
+        return parse_qs(u.query)["v"][0]
+    for part in ("/shorts/", "/embed/", "/live/"):
+        if part in u.path:
+            return u.path.split(part, 1)[1].split("/")[0]
+    return link
+
+
+def load_movies(lang: str) -> list:
+    """The video list of a language, from content/<lang>/movies.json."""
+    data = json.loads((CONTENT_DIR / lang / "movies.json").read_text(encoding="utf-8"))
+    return [{"title": m["title"], "id": youtube_id(m["youtube"])} for m in data]
+
+
+def render_page(request: Request, lang: str, key: str, template: str) -> HTMLResponse:
+    """Render a page, or redirect a first-time visitor to their own language.
+
+    Only the English pages redirect: a visitor without an explicit choice whose
+    browser prefers Dutch goes from /movies to /nl/movies. Pages with a language
+    prefix never redirect, so a shared /nl link always opens in Dutch.
+    """
+    path = PAGE_PATHS[key]
+    if lang == DEFAULT_LANG and key not in NO_AUTO_REDIRECT:
+        wanted = preferred_lang(request.cookies.get(LANG_COOKIE),
+                                request.headers.get("accept-language", ""))
+        if wanted and wanted != lang:
+            url = lang_url(wanted, path)
+            if request.url.query:
+                url += "?" + request.url.query
+            return RedirectResponse(url=url, status_code=302,
+                                    headers={"Vary": "Accept-Language, Cookie"})
 
     from backend.email_service import mail_server_ok
-    if MAIL_ERROR_MARKER in content and not mail_server_ok():
-        content = content.replace(MAIL_ERROR_MARKER, MAIL_ERROR_BANNER + "\n" + MAIL_ERROR_MARKER, 1)
+    content = jinja.get_template(f"{lang}/{template}").render(
+        lang=lang,
+        page=key,
+        languages=LANGUAGES,
+        default_lang=DEFAULT_LANG,
+        language_names=LANGUAGE_NAMES,
+        language_flags=LANGUAGE_FLAGS,
+        urls={code: lang_url(code, path) for code in LANGUAGES},
+        nav=[(k, lang_url(lang, PAGE_PATHS[k])) for k in NAV],
+        home_url=lang_url(lang, "/"),
+        site_url=SITE_URL,
+        t=UI[lang],
+        js_strings=JS[lang],
+        mail_down=not mail_server_ok(),
+        movies=load_movies(lang) if key == "movies" else [],
+    )
+    response = HTMLResponse(content=content)
+    if lang == DEFAULT_LANG:
+        response.headers["Vary"] = "Accept-Language, Cookie"
+    return response
 
-    return HTMLResponse(content=content)
+
+def _add_page_route(lang: str, key: str, path: str, template: str):
+    async def page(request: Request):
+        return render_page(request, lang, key, template)
+    app.add_api_route(lang_url(lang, path), page, methods=["GET"],
+                      response_class=HTMLResponse, name=f"{lang}_{key}")
 
 
-# --- Page Routes ---
+for _lang in LANGUAGES:
+    for _key, _path, _template in PAGES:
+        _add_page_route(_lang, _key, _path, _template)
+
+
 @app.get("/sitemap.xml")
 async def sitemap():
     sitemap_path = STATIC_DIR / "sitemap.xml"
     return HTMLResponse(content=sitemap_path.read_text(encoding="utf-8"), media_type="application/xml")
 
 
-@app.get("/", response_class=HTMLResponse)
-async def home():
-    return serve_template("index.html")
+@app.get("/lang/{lang}")
+async def switch_language(lang: str, next: str = "/"):
+    """Language switch in the menu: remember the choice and open the page in that language."""
+    if lang not in LANGUAGES:
+        raise HTTPException(status_code=404, detail="Page not found")
+    if not next.startswith("/") or next.startswith("//") or "\\" in next:
+        next = lang_url(lang, "/")  # only allow our own pages
+    response = RedirectResponse(url=next, status_code=302)
+    response.set_cookie(LANG_COOKIE, lang, max_age=365 * 24 * 3600, samesite="lax")
+    return response
 
 
-@app.get("/movies", response_class=HTMLResponse)
-async def movies():
-    return serve_template("movies.html")
+@app.get("/nl/")
+async def home_nl_slash():
+    return RedirectResponse(url="/nl", status_code=301)
 
 
-@app.get("/whitepapers", response_class=HTMLResponse)
-async def whitepapers():
-    return serve_template("whitepapers.html")
-
-
-@app.get("/contact", response_class=HTMLResponse)
-async def contact():
-    return serve_template("contact.html")
-
-
-@app.get("/order", response_class=HTMLResponse)
-async def order():
-    return serve_template("order.html")
-
-
-# --- Payment success/failure pages ---
-@app.get("/order/success", response_class=HTMLResponse)
-async def order_success():
-    return serve_template("order_success.html")
-
-
-@app.get("/order/cancelled", response_class=HTMLResponse)
+@app.get("/order/cancelled")
 async def order_cancelled():
     return RedirectResponse(url="/order")
+
+
+@app.get("/nl/order/cancelled")
+async def order_cancelled_nl():
+    return RedirectResponse(url="/nl/order")
 
 
 # --- API Models ---
@@ -169,6 +255,7 @@ class ContactMessage(BaseModel):
     message: str
     website: str = ""  # honeypot - must be empty
     human_answer: str = ""  # simple math answer
+    lang: str = DEFAULT_LANG  # language of the page the form was sent from
 
 
 class OrderRequest(BaseModel):
@@ -179,6 +266,7 @@ class OrderRequest(BaseModel):
     city: str
     country: str
     quantity: int = 1
+    lang: str = DEFAULT_LANG  # language of the page; emails and invoice use it too
 
 
 # --- API: Contact Form ---
@@ -186,10 +274,11 @@ class OrderRequest(BaseModel):
 async def api_contact(msg: ContactMessage, request: Request):
     """Save contact message and optionally send email."""
     client_ip = request.client.host if request.client else "unknown"
+    lang = normalize_lang(msg.lang)
 
     # Rate limiting
     if not _check_rate_limit(client_ip, "contact", RATE_LIMIT_MAX_CONTACT):
-        raise HTTPException(status_code=429, detail="Too many messages. Please try again later.")
+        raise HTTPException(status_code=429, detail=UI[lang]["err_too_many_messages"])
 
     # Honeypot check - bots fill in hidden fields
     if msg.website:
@@ -198,7 +287,7 @@ async def api_contact(msg: ContactMessage, request: Request):
 
     # Human test - answer must be "7"
     if msg.human_answer.strip() != "7":
-        raise HTTPException(status_code=400, detail="Incorrect answer to the verification question. Please try again.")
+        raise HTTPException(status_code=400, detail=UI[lang]["err_wrong_answer"])
 
     logger.info(f"Contact form from {msg.name} <{msg.email}>: {msg.subject}")
 
@@ -219,6 +308,7 @@ async def api_contact(msg: ContactMessage, request: Request):
         "email": msg.email,
         "subject": msg.subject,
         "message": msg.message,
+        "lang": lang,
         "timestamp": datetime.now().isoformat()
     }, indent=2), encoding="utf-8")
 
@@ -226,7 +316,7 @@ async def api_contact(msg: ContactMessage, request: Request):
         from backend.email_service import _send_email, NOTIFY_EMAIL
         _send_email(
             NOTIFY_EMAIL,
-            f"Contact form: {safe_subject or 'No subject'} - from {safe_name}",
+            f"Contact form ({lang.upper()}): {safe_subject or 'No subject'} - from {safe_name}",
             f"""<div style="font-family: Arial, sans-serif; max-width: 600px;">
                 <h2 style="color: #1a3a5c;">New Contact Message</h2>
                 <p><strong>From:</strong> {safe_name} &lt;{safe_email}&gt;</p>
@@ -246,11 +336,14 @@ async def api_contact(msg: ContactMessage, request: Request):
 async def api_order(order: OrderRequest, request: Request):
     """Create order and redirect to Mollie payment."""
     client_ip = request.client.host if request.client else "unknown"
+    lang = normalize_lang(order.lang)
     if not _check_rate_limit(client_ip, "order", RATE_LIMIT_MAX_ORDER):
-        raise HTTPException(status_code=429, detail="Too many orders. Please try again later.")
+        raise HTTPException(status_code=429, detail=UI[lang]["err_too_many_orders"])
 
     if order.quantity < 1 or order.quantity > 99:
-        raise HTTPException(status_code=400, detail="Invalid quantity")
+        raise HTTPException(status_code=400, detail=UI[lang]["err_quantity"])
+
+    success_url = lang_url(lang, "/order/success")
 
     total = round(BOOK_PRICE * order.quantity, 2)
     order_id = _next_invoice_number()
@@ -266,6 +359,7 @@ async def api_order(order: OrderRequest, request: Request):
         "country": order.country,
         "quantity": order.quantity,
         "total": total,
+        "lang": lang,
         "status": "pending",
         "created_at": datetime.now().isoformat()
     }
@@ -277,7 +371,7 @@ async def api_order(order: OrderRequest, request: Request):
     if not MOLLIE_API_KEY:
         logger.warning("MOLLIE_API_KEY not set - returning test URL")
         return {
-            "checkout_url": f"/order/success?order_id={order_id}",
+            "checkout_url": f"{success_url}?order_id={order_id}",
             "order_id": order_id
         }
 
@@ -293,11 +387,15 @@ async def api_order(order: OrderRequest, request: Request):
                 "value": f"{total:.2f}"
             },
             "description": f"The Alignment Puzzle x{order.quantity} ({order_id})",
-            "redirectUrl": f"{BASE_URL}/order/success?order_id={order_id}",
+            "redirectUrl": f"{BASE_URL}{success_url}?order_id={order_id}",
             "metadata": {
                 "order_id": order_id
             }
         }
+        # Dutch orders get Mollie's payment screen in Dutch; for English orders
+        # Mollie picks the customer's browser language itself.
+        if lang == "nl":
+            payment_data["locale"] = "nl_NL"
 
         # Only include webhookUrl when running on a public URL
         if not BASE_URL.startswith("http://localhost"):
@@ -316,7 +414,7 @@ async def api_order(order: OrderRequest, request: Request):
 
     except Exception as e:
         logger.error(f"Mollie payment error: {e}")
-        raise HTTPException(status_code=500, detail="Payment service unavailable. Please try again later.")
+        raise HTTPException(status_code=500, detail=UI[lang]["err_payment"])
 
 
 # --- API: Mollie Webhook ---
@@ -439,7 +537,7 @@ async def export_orders(secret: str = ""):
     # Build CSV
     output = io.StringIO()
     fields = ["order_id", "name", "email", "address", "postal_code", "city",
-              "country", "quantity", "total_excl_vat", "vat_amount", "total_incl_vat",
+              "country", "lang", "quantity", "total_excl_vat", "vat_amount", "total_incl_vat",
               "status", "created_at", "paid_at", "invoice_created", "owner_email_sent",
               "customer_email_sent"]
     writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")

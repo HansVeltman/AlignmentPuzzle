@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Boek bestellen - De AlignmentPuzzel{% endblock %}
+{% block description %}Bestel De AlignmentPuzzel. Verkrijgbaar in het Nederlands en het Engels, als gedrukt boek of eBook.{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-header">
+    <h1>Bestel het boek</h1>
+    <p>Verkrijgbaar in het Nederlands en het Engels &mdash; als gedrukt boek of eBook</p>
+</section>
+
+<!-- Editions -->
+<section class="section">
+    <div class="container">
+        <h2 style="text-align: center; color: var(--color-primary); margin-bottom: 8px;">Kies je editie</h2>
+        <p style="text-align: center; color: var(--color-text-light); margin-bottom: 0;">Het boek is verkrijgbaar in vier edities. Kies de editie die het best bij je past.</p>
+
+        <div class="two-col-layout">
+
+            <!-- DUTCH COLUMN -->
+            <div class="lang-column">
+                <div class="lang-column-top">
+                    <div class="book-thumb">
+                        <img src="/static/images/KoopBoekNL.jpg" alt="De AlignmentPuzzel">
+                    </div>
+                    <div class="lang-info">
+                        <h2>Nederlands</h2>
+                        <div class="lang-flags">
+                            <img src="https://flagcdn.com/w80/nl.png" alt="Nederlandse vlag">
+                        </div>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <a href="https://www.managementboek.nl/boek/9789461266606/de-alignmentpuzzel-vernieuwde-editie-hans-veltman" class="btn btn-outline" target="_blank" rel="noopener">
+                        Gedrukt boek bestellen
+                        <span class="btn-label">via Managementboek.nl</span>
+                    </a>
+                    <a href="https://www.managementboek.nl/e-book/9789461266729/de-alignmentpuzzel-vernieuwde-editie-hans-veltman" class="btn btn-outline" target="_blank" rel="noopener">
+                        eBook kopen
+                        <span class="btn-label">via Managementboek.nl</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- ENGLISH COLUMN -->
+            <div class="lang-column">
+                <div class="lang-column-top">
+                    <div class="book-thumb">
+                        <img src="/static/images/KoopBookEN.png" alt="The Alignment Puzzle">
+                    </div>
+                    <div class="lang-info">
+                        <h2>Engels</h2>
+                        <div class="lang-flags">
+                            <img src="https://flagcdn.com/w80/gb.png" alt="Britse vlag">
+                            <img src="https://flagcdn.com/w80/us.png" alt="Amerikaanse vlag">
+                        </div>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <a href="https://www.amazon.nl/Alignment-Puzzle-Advanced-Business-Engineering-ebook/dp/B0G22JH2L1" class="btn btn-outline" target="_blank" rel="noopener">
+                        eBook kopen
+                        <span class="btn-label">via Amazon Kindle</span>
+                    </a>
+                    <div>
+                        <button type="button" class="btn btn-outline" id="btnOrderPrinted" onclick="document.getElementById('order-form-section').style.display='block'; this.style.display='none';">
+                            Gedrukt boek bestellen (&euro; 45,-)
+                            <span class="btn-label">rechtstreeks bij de auteurs (alleen EU/VK)</span>
+                        </button>
+                        {% if mail_down %}<div class="mail-error-banner" role="alert"><strong>Storing mailserver!</strong> Excuses. Mail ons a.u.b. via <a href="mailto:hans@alignmentpuzzel.nl">hans@alignmentpuzzel.nl</a>.</div>{% endif %}
+                    </div>
+                </div>
+
+                <!-- Order form for English printed edition (hidden by default) -->
+                <div class="order-form-section" id="order-form-section" style="display: none;">
+                    <h3>Gedrukte Engelse editie bestellen</h3>
+                    <p class="subtitle">Rechtstreeks bij de auteurs &mdash; verzending alleen binnen de EU en het VK (&euro; 45,- incl. btw en verzendkosten).</p>
+
+                    <div id="orderMessage"></div>
+
+                    <form id="orderForm" action="/api/order" method="POST">
+                        <input type="hidden" name="lang" value="{{ lang }}">
+                        <div class="quantity-selector">
+                            <label for="quantity">Aantal:</label>
+                            <input type="number" id="quantity" name="quantity" value="1" min="1" max="99">
+                        </div>
+
+                        <h4 style="color: var(--color-primary); margin-bottom: 12px;">Verzendgegevens</h4>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="order_name">Volledige naam *</label>
+                                <input type="text" id="order_name" name="name" required>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="order_email">E-mail *</label>
+                                <input type="email" id="order_email" name="email" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="address">Adres *</label>
+                            <input type="text" id="address" name="address" required>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="postal_code">Postcode *</label>
+                                <input type="text" id="postal_code" name="postal_code" required>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="city">Plaats *</label>
+                                <input type="text" id="city" name="city" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="country">Land *</label>
+                            <select id="country" name="country" required>
+                                <option value="BE">België</option>
+                                <option value="BG">Bulgarije</option>
+                                <option value="CY">Cyprus</option>
+                                <option value="DK">Denemarken</option>
+                                <option value="DE">Duitsland</option>
+                                <option value="EE">Estland</option>
+                                <option value="FI">Finland</option>
+                                <option value="FR">Frankrijk</option>
+                                <option value="GR">Griekenland</option>
+                                <option value="HU">Hongarije</option>
+                                <option value="IE">Ierland</option>
+                                <option value="IT">Italië</option>
+                                <option value="HR">Kroatië</option>
+                                <option value="LV">Letland</option>
+                                <option value="LT">Litouwen</option>
+                                <option value="LU">Luxemburg</option>
+                                <option value="MT">Malta</option>
+                                <option value="NL" selected>Nederland</option>
+                                <option value="AT">Oostenrijk</option>
+                                <option value="PL">Polen</option>
+                                <option value="PT">Portugal</option>
+                                <option value="RO">Roemenië</option>
+                                <option value="SI">Slovenië</option>
+                                <option value="SK">Slowakije</option>
+                                <option value="ES">Spanje</option>
+                                <option value="CZ">Tsjechië</option>
+                                <option value="GB">Verenigd Koninkrijk</option>
+                                <option value="SE">Zweden</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 16px; padding: 14px;">
+                            Doorgaan naar betalen
+                        </button>
+                        <p style="text-align: center; margin-top: 10px; font-size: 0.82em; color: var(--color-text-light);">
+                            Veilig betalen via Mollie (iDEAL, creditcard, Bancontact en meer)
+                        </p>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+{% endblock %}

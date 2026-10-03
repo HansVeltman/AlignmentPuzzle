@@ -1,39 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-BTQ7NDCE0Y"></script>
-    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-BTQ7NDCE0Y');</script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Alignment Puzzle - Business Engineering for Aligned Organizations</title>
-    <meta name="description" content="The Alignment Puzzle introduces three core principles for business engineering: focus on cash flow, design around core processes, and manage for alignment.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="icon" href="/static/images/favicon.png" type="image/png">
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}The Alignment Puzzle - Business Engineering for Aligned Organizations{% endblock %}
+{% block description %}The Alignment Puzzle introduces three core principles for business engineering: focus on cash flow, design around core processes, and manage for alignment.{% endblock %}
 
-<!-- Header -->
-<header class="site-header">
-    <div class="header-inner">
-        <a href="/" class="site-logo">
-            <img src="/static/images/alignment-puzzle-logo-web.jpg" alt="The Alignment Puzzle">
-        </a>
-        <button class="menu-toggle" aria-label="Toggle navigation">
-            <span></span><span></span><span></span>
-        </button>
-        <nav class="main-nav" id="mainNav">
-            <a href="/" class="active">Home</a>
-            <a href="/movies">Movies</a>
-            <a href="/whitepapers">Whitepapers</a>
-            <a href="/contact">Contact</a>
-            <a href="/order" class="nav-cta">Order Book</a>        </nav>
-    </div>
-</header>
-
+{% block content %}
 <!-- Hero -->
 <section class="hero">
     <div class="hero-inner">
@@ -47,7 +16,7 @@
             </div>
         </div>
         <div class="hero-image">
-            <img src="/static/images/book-homepage.png" alt="The Alignment Puzzle Book">
+            <img src="/static/images/en/book-homepage.png" alt="The Alignment Puzzle Book">
         </div>
     </div>
 </section>
@@ -57,7 +26,7 @@
     <div class="container">
         <div class="content-block">
             <div class="content-block-image" style="max-width: 280px;">
-                <img src="/static/images/AlignmentModel.png" alt="The Alignment Model - Five Puzzle Pieces">
+                <img src="/static/images/en/AlignmentModel.png" alt="The Alignment Model - Five Puzzle Pieces">
             </div>
             <div class="content-block-text">
                 <h2>The five pieces of the alignment puzzle</h2>
@@ -117,17 +86,17 @@
         <p class="section-subtitle">The Alignment Puzzle introduces three core principles that transform how organizations operate.</p>
         <div class="principles">
             <div class="principle-card">
-                <div class="principle-number">1</div>
+                <div class="principle-number">1<span class="principle-label">Direct</span></div>
                 <h3>Long-term Cash Flow</h3>
                 <p>Focus on long-term cash flow, <strong>not</strong> short-term profit. Sustainable success comes from understanding the true drivers of financial health.</p>
             </div>
             <div class="principle-card">
-                <div class="principle-number">2</div>
+                <div class="principle-number">2<span class="principle-label">Design</span></div>
                 <h3>Core Process Design</h3>
                 <p>Design the business around the core process, <strong>not</strong> departments or functions. Break down silos by following how value actually flows.</p>
             </div>
             <div class="principle-card">
-                <div class="principle-number">3</div>
+                <div class="principle-number">3<span class="principle-label">Align</span></div>
                 <h3>Collective Performance</h3>
                 <p>Manage for alignment and collective performance, <strong>not</strong> individual results. When teams work in sync, the whole outperforms the sum of its parts.</p>
             </div>
@@ -146,7 +115,7 @@
 
             </div>
             <div class="content-block-image">
-                <img src="/static/images/business-engineering.jpg" alt="Business Engineering - The Alignment Puzzle">
+                <img src="/static/images/en/business-engineering.jpg" alt="Business Engineering - The Alignment Puzzle">
             </div>
         </div>
     </div>
@@ -169,7 +138,7 @@
                 <p>Document consequences clearly so everyone understands and acts accordingly. A good strategy becomes a shared compass driving effectiveness, productivity, and employee engagement.</p>
             </div>
             <div class="content-block-image">
-                <img src="/static/images/strategy-diagram.png" alt="Supply Chain Strategy and Commercial Strategy alignment">
+                <img src="/static/images/en/strategy-diagram.png" alt="Supply Chain Strategy and Commercial Strategy alignment">
             </div>
         </div>
     </div>
@@ -183,34 +152,6 @@
     </div>
 </section>
 
-<!-- Whitepapers -->
-<section class="section">
-    <div class="container">
-        <h2 class="section-title">Free Downloads</h2>
-        <p class="section-subtitle">Explore these whitepapers to learn more about the concepts in The Alignment Puzzle.</p>
-        <div class="downloads-grid">
-            <div class="download-card">
-                <img src="/static/images/icons/pdf-whats-new.png" alt="Alignment Puzzle Survey">
-                <h3>Alignment Puzzle Survey</h3>
-                <p>A whitepaper exploring the results and insights from the Alignment Puzzle survey.</p>
-                <a href="/static/pdfs/Aligmnentpuzzel-survey whitpaper EN.pdf" class="btn btn-outline" download>Download PDF</a>
-            </div>
-            <div class="download-card">
-                <img src="/static/images/icons/pdf-advanced.png" alt="Training Advanced Business Engineering">
-                <h3>Training Advanced Business Engineering</h3>
-                <p>An overview of the advanced training program based on the book's methodology.</p>
-                <a href="/static/pdfs/Training-advanced-business-engineering EN.pdf" class="btn btn-outline" download>Download PDF</a>
-            </div>
-            <div class="download-card">
-                <img src="/static/images/icons/pdf-quick-scan.png" alt="Alignment Quick Scan">
-                <h3>Alignment Quick Scan</h3>
-                <p>A practical tool to quickly assess the level of alignment in your organization.</p>
-                <a href="/static/pdfs/Alignment-quick-scan EN.pdf" class="btn btn-outline" download>Download PDF</a>
-            </div>
-        </div>
-    </div>
-</section>
-
 <!-- F1 CTA -->
 <section class="section section-dark" style="text-align: center;">
     <div class="container">
@@ -219,21 +160,4 @@
         <a href="/order" class="btn btn-primary">Order Your Copy</a>
     </div>
 </section>
-
-<!-- Footer -->
-<footer class="site-footer">
-    <div class="footer-inner">
-        <div class="footer-links">
-            <a href="/">Home</a>
-            <a href="/movies">Movies</a>
-            <a href="/whitepapers">Whitepapers</a>
-            <a href="/contact">Contact</a>
-            <a href="/order">Order Book</a>
-        </div>
-        <p class="footer-copy">&copy; 2026 The Alignment Puzzle. All rights reserved.</p>
-    </div>
-</footer>
-
-<script src="/static/js/main.js"></script>
-</body>
-</html>
+{% endblock %}

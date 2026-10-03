@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Order Confirmed - The Alignment Puzzle{% endblock %}
+{% block description %}Thank you for ordering The Alignment Puzzle.{% endblock %}
+{% block alternates %}
+    <meta name="robots" content="noindex">{% endblock %}
+
+{% block content %}
+<!-- Success -->
+<section class="section" style="text-align: center; min-height: 50vh; display: flex; align-items: center;">
+    <div class="container">
+        <div style="font-size: 4em; margin-bottom: 20px; color: #28a745;">&#10003;</div>
+        <h1 style="font-family: var(--font-heading); color: var(--color-primary); margin-bottom: 16px;">Thank You for Your Order!</h1>
+        <p style="font-size: 1.1em; color: var(--color-text-light); max-width: 600px; margin: 0 auto 30px;">
+            Your payment has been received. You will receive a confirmation email with your order details and tracking information shortly.
+        </p>
+        <a href="{{ home_url }}" class="btn btn-primary">Back to Home</a>
+    </div>
+</section>
+{% endblock %}

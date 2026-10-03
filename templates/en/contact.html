@@ -1,39 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-BTQ7NDCE0Y"></script>
-    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-BTQ7NDCE0Y');</script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact - The Alignment Puzzle</title>
-    <meta name="description" content="Get in touch with the authors of The Alignment Puzzle. Questions about the book, training, or consulting? We'd love to hear from you.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="icon" href="/static/images/favicon.png" type="image/png">
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Contact - The Alignment Puzzle{% endblock %}
+{% block description %}Get in touch with the authors of The Alignment Puzzle. Questions about the book, training, or consulting? We'd love to hear from you.{% endblock %}
 
-<!-- Header -->
-<header class="site-header">
-    <div class="header-inner">
-        <a href="/" class="site-logo">
-            <img src="/static/images/alignment-puzzle-logo-web.jpg" alt="The Alignment Puzzle">
-        </a>
-        <button class="menu-toggle" aria-label="Toggle navigation">
-            <span></span><span></span><span></span>
-        </button>
-        <nav class="main-nav" id="mainNav">
-            <a href="/">Home</a>
-            <a href="/movies">Movies</a>
-            <a href="/whitepapers">Whitepapers</a>
-            <a href="/contact" class="active">Contact</a>
-            <a href="/order" class="nav-cta">Order Book</a>        </nav>
-    </div>
-</header>
-
+{% block content %}
 <!-- Page Header -->
 <section class="page-header">
     <h1>Contact</h1>
@@ -47,6 +16,7 @@
             <div class="contact-form" style="flex: 1; min-width: 300px;">
                 <div id="formMessage"></div>
                 <form id="contactForm" action="/api/contact" method="POST">
+                    <input type="hidden" name="lang" value="{{ lang }}">
                     <div class="form-group">
                         <label for="name">Name *</label>
                         <input type="text" id="name" name="name" required>
@@ -86,21 +56,4 @@
         </div>
     </div>
 </section>
-
-<!-- Footer -->
-<footer class="site-footer">
-    <div class="footer-inner">
-        <div class="footer-links">
-            <a href="/">Home</a>
-            <a href="/movies">Movies</a>
-            <a href="/whitepapers">Whitepapers</a>
-            <a href="/contact">Contact</a>
-            <a href="/order">Order Book</a>
-        </div>
-        <p class="footer-copy">&copy; 2026 The Alignment Puzzle. All rights reserved.</p>
-    </div>
-</footer>
-
-<script src="/static/js/main.js"></script>
-</body>
-</html>
+{% endblock %}
